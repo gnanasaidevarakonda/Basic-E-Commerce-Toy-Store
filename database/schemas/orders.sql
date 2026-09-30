@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+CREATE TABLE orders(
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `order_number` VARCHAR(50) NOT NULL UNIQUE,
+)

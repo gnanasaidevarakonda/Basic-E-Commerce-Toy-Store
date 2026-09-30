@@ -1,0 +1,33 @@
+# Environment and secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+
+# Composer dependencies
+vendor/
+composer.phar
+
+# Docker volumes and local DB data
+docker/mysql_data/
+*.sql.gz
+
+# Logs and runtime caches
+storage/logs/*.log
+storage/cache/*
+!storage/logs/.gitkeep
+!storage/cache/.gitkeep
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor folders
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

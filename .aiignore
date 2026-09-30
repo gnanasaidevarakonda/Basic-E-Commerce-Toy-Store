@@ -1,0 +1,11 @@
+# AI Ignore Rules
+# Instructs all AI tools, indexers, and assistants to ignore secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+storage/logs/
+docker/mysql_data/

@@ -1,0 +1,10 @@
+# Gemini / Antigravity Ignore Rules
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+storage/logs/
+docker/mysql_data/

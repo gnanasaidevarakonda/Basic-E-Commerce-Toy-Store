@@ -1,0 +1,52 @@
+#version: '3.8'
+
+services:
+  # ==========================================
+  # Service 1: Web Server (Nginx)
+  # ==========================================
+  web:
+    image: nginx:alpine
+    container_name: ebike_web
+    restart: unless-stopped
+    ports:
+      - "8080:80" # Maps port 8080 on your Windows laptop to port 80 inside Nginx
+    volumes:
+      - ./:/var/www/html # Live sync: changes on your laptop appear instantly in Nginx
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  # ==========================================
+  # Service 2: PHP Application (PHP 8.2-FPM)
+  # ==========================================
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ebike_app
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html # Live sync: edits to your PHP files are immediately active
+    depends_on:
+      - db
+
+  # ==========================================
+  # Service 3: MySQL Database (MySQL 8.0)
+  # ==========================================
+  db:
+    image: mysql:8.0
+    container_name: ebike_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ebike_store
+      MYSQL_USER: ebike_user
+      MYSQL_PASSWORD: ebike_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3307:3306" # Mapped to 3307 on your laptop so it doesn't clash with local MySQL
+    volumes:
+      - db_data:/var/lib/mysql # Persistent storage: data is saved even if container stops
+
+volumes:
+  db_data:
+    driver: local
