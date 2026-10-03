@@ -31,3 +31,9 @@ desktop.ini
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+# AI and AGENTS folders & files
+
+.agents/
+.aiignore
+.geminiignore
