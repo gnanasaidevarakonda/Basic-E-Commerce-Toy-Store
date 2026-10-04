@@ -12,7 +12,7 @@ class Response
         http_response_code($statusCode);
 
         // 2. Tell the browser what we will sending will be JSON not HTML
-        header('Content-Type:application/json; charset:utf-8');
+        header('Content-Type:application/json; charset=utf-8');
 
         // 3. Determine if this response is success or not?
         $isSuccess = ($statusCode >= 200 && $statusCode <= 300);
@@ -24,7 +24,7 @@ class Response
         ];
 
         // 5. If message was not provided add it to payload.
-        if (!$message) {
+        if (!empty($message)) {
             $payload['message'] = $message;
         }
 
@@ -42,7 +42,7 @@ class Response
 
     // Quick shortcut for succesful operations.
 
-    public static function succes(mixed $data = null, string $message = 'Success', int $statusCode = 200): void
+    public static function success(mixed $data = null, string $message = 'Success', int $statusCode = 200): void
     {
         self::json($data, $statusCode, $message);
     }

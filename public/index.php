@@ -1,16 +1,65 @@
 <?php
 
-// Tell the browser or client that we are sending JSON data
-header('Content-Type: application/json; charset=utf-8');
+// 1. Load our custom Autoloader
+require_once dirname(__DIR__) . '/src/Core/Autoloader.php';
+\App\Core\Autoloader::register();
 
-// Return a clean status message
-echo json_encode([
-    'status' => 'success',
-    'message' => 'E-Bike Backend Docker is up and running!',
-    'environment' => [
-        'php_version' => PHP_VERSION,
-        'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Nginx',
-        'timestamp' => date('Y-m-d H:i:s'),
-        'timezone' => date_default_timezone_get()
-    ]
-], JSON_PRETTY_PRINT);
+use  App\Core\Router;
+use App\Core\Response;
+use App\Controllers\CategoryController;
+use App\Controllers\ProductController;
+
+// 2. Initialize the Router
+$router = new Router();
+
+// Routes
+// Homepage Route: http://localhost:8080/
+$router->get('/', [PublicTestController::class, 'home']);
+
+// Health check route: http://localhost:8080/api/v1/health
+$router->get('api/v1/health', [PublicTestController::class, 'health']);
+
+// Category Endpoints
+$router->get('api/v1/categories', [CategoryController::class, 'index']);
+$router->get('api/v1/categories/{slug}', [CategoryController::class, 'show']);
+
+
+// Product Endpoints (catelog & single view)
+$router->get('api/v1/products', [ProductController::class, 'index']);
+$router->get('api/v1/products/{slug}', [ProductController::class, 'show']);
+
+// Temporary Test Controller
+class PublicTestController
+{
+    // Welcome message when visiting http://localhost:8080/
+    public function home()
+    {
+        Response::success([
+            'store-name' => 'ToyVerse E-commerce API',
+            'api-docs' => 'Welcome to the Toy store REST API',
+            'version' => 'v1.0.0',
+            'routes' => [
+                'GET /' => 'API Welcome message',
+                'GET /api/v1/health' => 'System health & uptime check',
+                'GET /api/v1/categories' => 'List all toy categories',
+                'GET /api/v1/categories/{slug}' => 'Get Single category details',
+                'GET /api/v1/products' => 'paginated & filtered toys catalog',
+                'GET /api/v1/products/{slug}' => 'Single toy with gallery images'
+            ]
+        ], 'Toy store API is live and running!');
+    }
+
+    // Health check endpoint when visiting http://localhost:8080/api/v1/health
+
+    public function health()
+    {
+        Response::success([
+            'status' => 'All systems operational',
+            'php-version' => PHP_VERSION,
+            'database' => 'Connected (toystore_db)'
+        ], 'Health check passed!');
+    }
+}
+
+// Dispatch the incomming request...
+$router->dispatch();

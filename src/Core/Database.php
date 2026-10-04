@@ -27,9 +27,9 @@ class Database
 
             $host = getenv('DB_HOST') ?: 'db';
             $port = getenv('DB_PORT') ?: '3306';
-            $database = getenv('DB_DATABASE') ?: 'ebike_store';
-            $username = getenv('DB_USERNAME') ?: 'ebike_user';
-            $password = getenv('DB_PASSWORD') ?: 'ebike_password';
+            $database = getenv('DB_DATABASE') ?: 'toystore_db';
+            $username = getenv('DB_USERNAME') ?: 'toystore_user';
+            $password = getenv('DB_PASSWORD') ?: 'toystore_password';
 
             // DSN (Data Source Name): The connection string
             $dsn = "mysql:host={$host};port={$port};dbname={$database}; charset=utf8mb4";
