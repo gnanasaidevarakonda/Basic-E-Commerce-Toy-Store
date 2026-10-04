@@ -20,7 +20,7 @@ class ProductController
         // Query the database through the model
         $result = Product::paginate($filters);
 
-        Response::success($result, 'Products retrieved successfullu');
+        Response::success($result, 'Products retrieved successfully');
     }
 
     // GET /api/v1/products/{slug}

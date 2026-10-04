@@ -90,7 +90,7 @@ class Product
 
         $selectSql = "SELECT p.id, p.name, p.slug, p.sku, p.brand, p.age_group,
         p.price, p.compare_at_price, p.stock_quantity, p.is_featured, c.name AS category_name,
-        c.name AS category_slug, COALESCE(pi.image_url, 'https://placehold.co/600x400?text=No+Image') AS primary_image {$baseSql}
+        c.slug AS category_slug, COALESCE(MAX(pi.image_url), 'https://placehold.co/600x400?text=No+Image') AS primary_image {$baseSql}
         GROUP BY p.id {$orderBy} LIMIT {$limit} OFFSET {$offset}";
 
         $stmt = $db->prepare($selectSql);
