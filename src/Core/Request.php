@@ -76,15 +76,21 @@ class Request
     # 7. Get the JWT Secret Token from the Authorization Header
     public static function getBearerToken(): ?string
     {
-        $headers = self::getHeaders();
+        // 1. Direct check in $__SERVER
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
 
-        // Check for 'Authorization' or lowercase 'authorizaation'
-        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+        // 2. Fallback for headers array
+        if (!$authHeader) {
+            $headers = self::getHeaders();
+            $authHeader = $headers['Authorization'] ?? $headers['AUTHORIZATION']
+                ?? $headers['authorization'] ?? null;
+        }
 
-        // If header looks like "Bearer eyjhgsbh676...", extract the token part.
+        // If header looks like "Bearer ejyugdsh76yshg6...." extract the token part
         if ($authHeader && preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
             return $matches[1];
         }
+
         return null;
     }
 
