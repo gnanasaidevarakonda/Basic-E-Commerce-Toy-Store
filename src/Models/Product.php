@@ -25,38 +25,40 @@ class Product
 
         // 2. Filter by Brand 
         if (!empty($filters['brand'])) {
-            $baseSql .= "AND p.brand = :brand";
-            $params['brand'] = $filters['brand'];
+            $baseSql .= " AND p.brand = :brand";
+            $params[':brand'] = $filters['brand'];
         }
 
         // 3. Filter by Age Group
         if (!empty($filters['age'])) {
-            $baseSql .= "AND p.age_group = :age";
-            $params['age'] = $filters['age'];
+            $baseSql .= " AND p.age_group = :age";
+            $params[':age'] = $filters['age'];
         }
 
         // 4. Filter by Minimum Price
         if (!empty($filters['min_price']) && is_numeric($filters['min_price'])) {
-            $baseSql .= "AND p.price >= :min_price";
+            $baseSql .= " AND p.price >= :min_price";
             $params[':min_price'] = (float) $filters['min_price'];
         }
 
         // 5. Filter by Maximum price
         if (!empty($filters['max_price']) && is_numeric($filters['max_price'])) {
-            $baseSql .= "AND p.price <= :max_price";
+            $baseSql .= " AND p.price <= :max_price";
             $params[':max_price'] = (float) $filters['max_price'];
         }
 
         // 6. Search in Toy Name or Description
         if (!empty($filters['q'])) {
-            $baseSql .= "AND (p.name LIKE :search OR p.description LIKE :search)";
-            $params['search'] = '%' . trim($filters['q']) . '%';
+            $baseSql .= " AND (p.name LIKE :search_name OR p.description LIKE :search_desc)";
+            $searchTerm = '%' . trim($filters['q']) . '%';
+            $params[':search_name'] = $searchTerm;
+            $params['search_desc'] = $searchTerm;
         }
 
         // 7. Filter Featured toys only
         if (isset($filters['featured']) && $filters['featured'] !== "") {
-            $baseSql .= "AND p.is_featured = :featured";
-            $params['featured'] = (int) $filters['featured'];
+            $baseSql .= " AND p.is_featured = :featured";
+            $params[':featured'] = (int) $filters['featured'];
         }
 
 
@@ -72,8 +74,9 @@ class Product
         $sortOption = $filters['sort'] ?? 'newest';
         $orderBy = match ($sortOption) {
             'price_asc' => 'ORDER BY p.price ASC',
-            'price_dsc' => 'ORDER BY p.price DESC',
+            'price_dsc', 'price_desc' => 'ORDER BY p.price DESC',
             'name_asc' => 'ORDER BY p.name ASC',
+            'name_desc' => 'ORDER BY p.name DESC',
             default => 'ORDER BY p.created_at DESC',
         };
 

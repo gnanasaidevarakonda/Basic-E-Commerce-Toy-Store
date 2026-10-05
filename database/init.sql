@@ -25,6 +25,7 @@ CREATE TABLE `categories` (
     `name` VARCHAR(100) NOT NULL,
     `slug` VARCHAR(100) NOT NULL UNIQUE,
     `description` TEXT DEFAULT NULL,
+    `image_url` VARCHAR(255) DEFAULT NULL,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -42,7 +43,9 @@ CREATE TABLE `products` (
     `age_group` ENUM('0-2', '3-5', '6-8', '9-12', '12+') NOT NULL DEFAULT '3-5',
     `description` TEXT DEFAULT NULL,
     `price` DECIMAL(10, 2) NOT NULL,
+    `compare_at_price` DECIMAL(10, 2) DEFAULT NULL,
     `stock_quantity` INT NOT NULL DEFAULT 0,
+    `is_featured` TINYINT(1) NOT NULL DEFAULT 0,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -151,12 +154,21 @@ VALUES (
     ) ON DUPLICATE KEY
 UPDATE `id` = `id`;
 -- Categories Seed
-INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `is_active`)
+-- Categories Seed
+INSERT INTO `categories` (
+        `id`,
+        `name`,
+        `slug`,
+        `description`,
+        `image_url`,
+        `is_active`
+    )
 VALUES (
         1,
         'Action Figures',
         'action-figures',
         'Superheroes, anime characters, and poseable figures.',
+        'https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?w=600',
         1
     ),
     (
@@ -164,6 +176,7 @@ VALUES (
         'Building Blocks',
         'building-blocks',
         'Lego-compatible sets, architectural bricks, and STEM blocks.',
+        'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=600',
         1
     ),
     (
@@ -171,6 +184,7 @@ VALUES (
         'Board Games & Puzzles',
         'board-games',
         'Strategy board games, family puzzles, and brain teasers.',
+        'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600',
         1
     ),
     (
@@ -178,6 +192,7 @@ VALUES (
         'Educational & STEM',
         'educational-stem',
         'Robotics, science kits, and early-childhood learning tools.',
+        'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600',
         1
     ),
     (
@@ -185,6 +200,7 @@ VALUES (
         'Outdoor & Sports',
         'outdoor-sports',
         'Scooters, blasters, sports balls, and active outdoor toys.',
+        'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=600',
         1
     ),
     (
@@ -192,6 +208,7 @@ VALUES (
         'Dolls & Plushies',
         'dolls-plushies',
         'Soft cuddly stuffed animals, fashion dolls, and playsets.',
+        'https://images.unsplash.com/photo-1558877385-81a1c7e67d72?w=600',
         1
     ) ON DUPLICATE KEY
 UPDATE `id` = `id`;
