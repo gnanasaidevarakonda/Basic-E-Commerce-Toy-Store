@@ -32,8 +32,8 @@ desktop.ini
 *.sublime-project
 *.sublime-workspace
 
-# AI and AGENTS folders & files
-
-.agents/
+# AI and AGENTS folders & files (allowed for cross-device AI synchronization)
+!.agents/
+!AGENTS.md
 .aiignore
 .geminiignore

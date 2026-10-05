@@ -1,0 +1,31 @@
+{
+  "name": "ToyVerse E-Commerce Stack",
+  "image": "mcr.microsoft.com/devcontainers/universal:latest",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": "true"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "ms-azuretools.vscode-docker",
+        "formulahendry.auto-close-tag"
+      ]
+    }
+  },
+  "forwardPorts": [8080, 3307],
+  "portsAttributes": {
+    "8080": {
+      "label": "ToyVerse REST API (Nginx)",
+      "onAutoForward": "notify"
+    },
+    "3307": {
+      "label": "MySQL Database",
+      "onAutoForward": "ignore"
+    }
+  },
+  "postCreateCommand": "docker compose up -d --build"
+}
