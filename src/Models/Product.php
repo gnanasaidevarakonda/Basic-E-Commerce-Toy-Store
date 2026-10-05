@@ -52,7 +52,7 @@ class Product
             $baseSql .= " AND (p.name LIKE :search_name OR p.description LIKE :search_desc)";
             $searchTerm = '%' . trim($filters['q']) . '%';
             $params[':search_name'] = $searchTerm;
-            $params['search_desc'] = $searchTerm;
+            $params[':search_desc'] = $searchTerm;
         }
 
         // 7. Filter Featured toys only
