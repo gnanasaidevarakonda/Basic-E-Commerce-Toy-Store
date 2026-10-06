@@ -25,6 +25,9 @@
    - Pure, modern vanilla **PHP 8.2+ only**.
    - **NO** Laravel, Symfony, Slim, or composer framework bloat.
    - Everything (router, autoloader, request parser, response emitter, JWT service) is hand-crafted from scratch.
+6. **Automatic AI & Agent Files Synchronization:**
+   - Only ask for permission/guidance regarding application project code (`src/`, `public/`, `database/`) so the user learns by doing.
+   - Automatically update and maintain `AGENTS.md` and `.agents/` files as new milestones and architectural changes occur, keeping them 100% in sync for Git and multi-device portability without prompting the user.
 
 ---
 
@@ -83,6 +86,8 @@ basic_e-commerce/
 │   └── index.php                  # Application entry point & route dispatcher
 ├── src/
 │   ├── Controllers/
+│   │   ├── AdminAuthController.php# Backoffice staff login with RBAC role checks
+│   │   ├── AdminController.php    # Catalog CRUD, smart deletion, dashboard metrics, staff CRUD
 │   │   ├── AuthController.php     # Public register, login, and guarded profile
 │   │   ├── CategoryController.php # List categories, show by slug
 │   │   └── ProductController.php  # Paginated/filtered catalog, single toy view
@@ -93,8 +98,9 @@ basic_e-commerce/
 │   │   ├── Response.php           # Standardized JSON envelopes (success, error, json)
 │   │   └── Router.php             # GET/POST/PUT/DELETE, regex params, middleware execution
 │   ├── Middlewares/
+│   │   ├── AdminMiddleware.php    # Super Admin RBAC guard enforcing role === 'admin' (403)
 │   │   ├── AuthMiddleware.php     # Cryptographic JWT bearer guard & user caching
-│   │   └── AdminMiddleware.php    # RBAC guard enforcing role === 'admin' (403 Forbidden)
+│   │   └── StaffMiddleware.php    # Operational staff tier guard (manager + admin)
 │   ├── Models/
 │   │   ├── Category.php           # Categories queries
 │   │   ├── Product.php            # Filtered/paginated products with fulltext search
@@ -121,9 +127,18 @@ basic_e-commerce/
 | `GET` | `/api/v1/products` | Public | Paginated toys with filters (`?category=&age=&search=`) |
 | `GET` | `/api/v1/products/{slug}` | Public | Single toy details with full image gallery |
 | `POST`| `/api/v1/auth/register` | Public | Register new customer (`role: 'user'`, returns JWT) |
-| `POST`| `/api/v1/auth/login` | Public | Authenticate user/admin credentials (returns JWT) |
+| `POST`| `/api/v1/auth/login` | Public | Authenticate customer credentials (returns JWT) |
 | `GET` | `/api/v1/auth/profile` | `[AuthMiddleware]` | View authenticated user profile (Requires Bearer token) |
 | `GET` | `/api/v1/auth/user` | `[AuthMiddleware]` | Alias for profile endpoint |
+| `POST`| `/api/v1/admin/auth/login` | Public | Staff backoffice login (Managers & Super Admins) |
+| `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats, inventory & low-stock alerts |
+| `GET` | `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Full inventory inspection (`?stock=low`) |
+| `POST`| `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Add new toy (auto-slug, SKU uniqueness, category check) |
+| `PUT` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Update toy prices, stock quantity, and details |
+| `DELETE`| `/api/v1/admin/products/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin smart delete (hard-delete or soft-delete) |
+| `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
+| `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
+| `DELETE`| `/api/v1/admin/managers/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin removes/revokes a manager account |
 
 ---
 
@@ -147,24 +162,23 @@ basic_e-commerce/
 - `JWTService.php` with HMAC-SHA256 signature verification.
 - `AuthController.php` (`register`, `login`, `profile`).
 - `AuthMiddleware.php` with `getBearerToken()` support across FastCGI/Nginx.
-- `AdminMiddleware.php` (RBAC guard enforcing `role === 'admin'`).
+
+### [DONE] Phase 5: Admin Panel Authentication & Backoffice API (Tiered RBAC)
+- Tiered RBAC schema in MySQL: `users.role` ENUM (`user`, `manager`, `admin`).
+- `AdminAuthController.php`: Staff authentication gateway for managers & admins (blocks customers with 403).
+- `StaffMiddleware.php`: Operational access tier allowing both `manager` and `admin`.
+- `AdminMiddleware.php`: Executive access tier enforcing strictly `admin`.
+- `AdminController.php`:
+  - Executive dashboard metrics (`/api/v1/admin/dashboard`)
+  - Inventory inspection with low-stock filtering (`/api/v1/admin/products`)
+  - Staff toy creation (`POST`) and updates (`PUT`) with automated slugification and SKU validation
+  - Super Admin smart product deletion (`DELETE`) with automatic soft-delete preservation for historical orders
+  - Super Admin team management: list, create, and delete managers
+- `public/index.php`: Layered route registration with strict middleware sequences.
 
 ---
 
-### [CURRENT FOCUS] Phase 5: Admin Panel Authentication & Backoffice API
-1. **`src/Controllers/AdminAuthController.php`** (Next Immediate File):
-   - `POST /api/v1/admin/auth/register`: Admin onboarding endpoint requiring master secret key (`ADMIN_REGISTRATION_SECRET` in `.env`). Automatically assigns `role: 'admin'`.
-   - `POST /api/v1/admin/auth/login`: Admin panel login enforcing that caller strictly has `role === 'admin'`.
-2. **`src/Controllers/AdminController.php`**:
-   - `POST /api/v1/admin/products`: Create a new toy with category validation.
-   - `PUT /api/v1/admin/products/{id}`: Update toy details, price, and stock levels.
-   - `DELETE /api/v1/admin/products/{id}`: Soft-delete/deactivate product.
-   - `GET /api/v1/admin/dashboard`: Executive analytics (revenue, order counts, low stock alerts).
-   - Routes guarded with: `[AuthMiddleware::class, AdminMiddleware::class]`.
-
----
-
-### [UPCOMING] Phase 6: Cart & Atomic Checkout
+### [CURRENT FOCUS] Phase 6: Cart & Atomic Checkout
 - In-memory/session or database cart.
 - `Order.php`, `OrderItem.php`, `OrderController.php`.
 - **Atomic MySQL Transactions:** Safe concurrency locking (`SELECT ... FOR UPDATE`) to prevent overselling inventory during simultaneous checkouts.
