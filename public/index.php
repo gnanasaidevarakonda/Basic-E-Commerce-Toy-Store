@@ -4,12 +4,16 @@
 require_once dirname(__DIR__) . '/src/Core/Autoloader.php';
 \App\Core\Autoloader::register();
 
+use App\Controllers\AdminAuthController;
+use App\Controllers\AdminController;
 use  App\Core\Router;
 use App\Core\Response;
 use App\Controllers\CategoryController;
 use App\Controllers\ProductController;
 use App\Controllers\AuthController;
 use App\Middlewares\AuthMiddleware;
+use App\Middlewares\StaffMiddleware;
+use App\Middlewares\AdminMiddleware;
 
 // 2. Initialize the Router
 $router = new Router();
@@ -19,8 +23,9 @@ $router = new Router();
 $router->get('/', [PublicTestController::class, 'home']);
 
 // Health check route: http://localhost:8080/api/v1/health
-$router->get('api/v1/health', [PublicTestController::class, 'health']);
+$router->get('/api/v1/health', [PublicTestController::class, 'health']);
 
+// Public Routes
 // Category Endpoints
 $router->get('api/v1/categories', [CategoryController::class, 'index']);
 $router->get('api/v1/categories/{slug}', [CategoryController::class, 'show']);
@@ -36,6 +41,29 @@ $router->post('api/v1/auth/login', [AuthController::class, 'login']);
 
 // Protected Profile End points (Guarded bt auth middlewares)
 $router->get('api/v1/auth/profile', [AuthController::class, 'profile'], [AuthMiddleware::class]);
+
+// BACKOFFICE AUTHENTICATION
+// staff login (both admin & managers)
+$router->post('api/v1/admin/auth/login', [AdminAuthController::class, 'login']);
+
+// OPERATIONAL STAFF ROUTES (mannagers and  super admins)
+// Execute dashboard metrics
+$router->get('api/v1/admin/dashboard', [AdminController::class, 'dashboard'], [AuthMiddleware::class, StaffMiddleware::class]);
+
+// Inventory & Catalog Management
+$router->get('/api/v1/admin/products', [AdminController::class, 'index'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->post('/api/v1/admin/products', [AdminController::class, 'store'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->put('/api/v1/admin/products/{id}', [AdminController::class, 'update'], [AuthMiddleware::class, StaffMiddleware::class]);
+
+
+// Executive SUPER ADMIN ONLY ROUTES
+// safe product deletion (hard delete junk items/soft delete items with orders)
+$router->delete('/api/v1/admin/products/{id}', [AdminController::class, 'destroy'], [AuthMiddleware::class, AdminMiddleware::class]);
+
+// Team & Staff Management
+$router->get('/api/v1/admin/managers', [AdminController::class, 'listManagers'], [AuthMiddleware::class, AdminMiddleware::class]);
+$router->post('/api/v1/admin/managers', [AdminController::class, 'createManager'], [AuthMiddleware::class, AdminMiddleware::class]);
+$router->delete('/api/v1/admin/managers/{id', [AdminController::class, 'deleteManager'], [AuthMiddleware::class . AdminMiddleware::class]);
 
 // Temporary Test Controller
 class PublicTestController
@@ -60,14 +88,16 @@ class PublicTestController
                     'POST /api/v1/auth/register' => 'Register new customer.',
                     'POST /api/v1/auth/login' => 'Authenticate credentials and user logged-in',
                     'GET /api/v1/auth/profile' => 'View authenticated profile'
-                ]
+                ],
+                'staff-portal' => 'POST /api/v1/admin/auth/login',
+                'admin-dashboard' => 'GET /api/v1/admin/dashboard'
             ]
-        ], 'Toy store API is live and running!');
+        ], 'Toy store API is live and running...');
     }
 
     // Health check endpoint when visiting http://localhost:8080/api/v1/health
 
-    public function health()
+    public function health(): void
     {
         Response::success([
             'status' => 'All systems operational',
