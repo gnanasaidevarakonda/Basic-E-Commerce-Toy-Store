@@ -7,6 +7,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Models\Product;
 use App\Models\User;
+use App\Middlewares\AuthMiddleware;
 use PDO;
 
 class AdminController
@@ -32,7 +33,10 @@ class AdminController
         // 4. Total categories
         $totalCategories = (int) $db->query("SELECT COUNT(*) FROM categories WHERE is_active = 1")->fetchColumn();
 
-        // 5. Total staff managers
+        // 5. Total registered customers (users)
+        $totalCustomers = (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'user'")->fetchColumn();
+
+        // 6. Total staff managers
         $totalManagers = (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'manager'")->fetchColumn();
 
         Response::success([
@@ -41,6 +45,7 @@ class AdminController
                 'active_products'  => $activeProducts,
                 'low_stock_alerts' => $lowStockCount,
                 'total_categories' => $totalCategories,
+                'total_customers' => $totalCustomers,
                 'total_managers'   => $totalManagers
             ]
         ], 'Admin dashboard metrics retrieved successfully.');
@@ -466,5 +471,98 @@ class AdminController
         Response::success([
             'manager_id' => $managerId
         ], "Manager '{$user['full_name']}' has been removed from staff.");
+    }
+    /**
+     * GET /api/v1/admin/users
+     * Staff & Admin: INspect all registered uers & customers with filters.
+     */
+    public function listUsers(): void
+    {
+        $db = Database::getConnection();
+        $params = Request::getQueryParams();
+
+        // Inspect who is calling the endpoint
+        $caller = AuthMiddleware::user();
+        $isSuperAdmin = ($caller['role'] ?? '') === 'admin';
+
+        // 1. Base query: intentionally omit password_hash for security
+        $sql = "SELECT id, full_name, email, phone, role, is_active, created_at, updated_at FROM users WHERE 1=1";
+        $bind = [];
+
+        // 2. Tired RBAC Role Enforecemt
+        if ($isSuperAdmin) {
+            // Super admin can freely filter by any role
+            if (!empty($params['role'])) {
+                $sql .= " AND role = :role";
+                $bind[':role'] = strtolower(trim($params['role']));
+            }
+        } else {
+            // Operational Staff: Strictly lock query to customer accounts only
+            // Any ?role parameter passed by staff is ignored to prevent privilage leakage
+            $sql .= " AND role = 'user'";
+        }
+
+        // 3. Filter by Active Status
+        if (!empty($params['status'])) {
+            $status = strtolower(trim($params['status']));
+            if ($status === 'active') {
+                $sql .= " AND is_active =1";
+            } elseif ($status === 'inactive') {
+                $sql .= " AND is_active = 0";
+            }
+        }
+
+        // 4. Keyword SEarch across name email and phone
+        if (!empty($params['q'])) {
+            $sql .= " AND (full_name LIKE :search_name OR email LIKE :search_email OR phone LIKE :search_phone)";
+            $searchTerm = '%' . trim($params['q']) . '%';
+            $bind[':search_name'] = $searchTerm;
+            $bind[':search_email'] = $searchTerm;
+            $bind[':search_phone'] = $searchTerm;
+        }
+
+        // 5. Order newest user first
+        $sql .= " ORDER BY id DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($bind);
+        $users = $stmt->fetchAll();
+
+        Response::success([
+            'count' => count($users),
+            'users' => $users
+        ], 'Users directory retrieved successfully.');
+    }
+
+    /**
+     * GET /api/v1/admin/users/{id}
+     * Staff & Admin: Inspect single user/customer data
+     * operational staff: blocked with 403 if trying to inspect staff or admins
+     * only superadmin has privilages to check any user
+     */
+    public function showUser(string $id): void
+    {
+        $userId = (int)$id;
+        $db = Database::getConnection();
+
+        // Inspect who is calling this endpoint
+        $caller = AuthMiddleware::user();
+        $isSuperAdmin = ($caller['role']) === 'admin';
+
+        $stmt = $db->prepare("SELECT id, full_name, email, phone, role, is_active, created_at, updated_at 
+        FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $userId]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            Response::error("User with ID {$userId} not found.", 404);
+        }
+
+        // Security Guard: Operational managers are srictly forbidden from checking other staff and admins
+        if (!$isSuperAdmin && $user['role'] !== 'user') {
+            Response::error("Forbidden: Operational staff are only permitted to inspect customer accounts.", 403);
+        }
+
+        Response::success($user, "User details retrieved successfully.");
     }
 }

@@ -71,6 +71,8 @@ $router->delete('/api/v1/admin/products/{id}', [AdminController::class, 'destroy
 $router->get('/api/v1/admin/managers', [AdminController::class, 'listManagers'], [AuthMiddleware::class, AdminMiddleware::class]);
 $router->post('/api/v1/admin/managers', [AdminController::class, 'createManager'], [AuthMiddleware::class, AdminMiddleware::class]);
 $router->delete('/api/v1/admin/managers/{id}', [AdminController::class, 'deleteManager'], [AuthMiddleware::class, AdminMiddleware::class]);
+$router->get('/api/v1/admin/users', [AdminController::class, 'listUsers'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->get('/api/v1/admin/users/{id}', [AdminController::class, 'showUser'], [AuthMiddleware::class, StaffMiddleware::class]);
 
 // Temporary Test Controller
 class PublicTestController

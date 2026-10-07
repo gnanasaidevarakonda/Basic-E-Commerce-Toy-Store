@@ -144,6 +144,8 @@ basic_e-commerce/
 | `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
 | `DELETE`| `/api/v1/admin/managers/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin removes/revokes a manager account |
+| `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Staff & Admins inspect all registered users/customers (`?role=&status=&q=`) |
+| `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Staff & Admins inspect single user/customer details |
 
 ---
 

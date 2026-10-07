@@ -385,6 +385,67 @@
                         "method": "PATCH",
                         "url": "{{base_url}}/api/v1/admin/products/1/featured"
                     }
+                },
+                {
+                    "name": "List Customer Directory (Staff & Admin)",
+                    "request": {
+                        "description": "Inscpect registered customer directory. Operational managers are strictly restricted to customers only. Any ?role query parameter passed by managers is ignored.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/users?q=$status=active",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": "",
+                                    "description": "Search keyword across full_name, email or phone",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "active",
+                                    "description": "Filter by active or inactive accounts",
+                                    "disabled": true
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "String Customer Details (Staff & Admin)",
+                    "request": {
+                        "description": "Inspect single customer details by ID. Operational Managers attempting to inspect staff rertrive 403 forbidden",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/admin/users/2"
+                    }
                 }
             ]
         },
@@ -408,6 +469,52 @@
                         },
                         "method": "GET",
                         "url": "{{base_url}}/api/v1/admin/managers"
+                    }
+                },
+                {
+                    "name": "List Users with Role Filter (Super Admin Only)",
+                    "request": {
+                        "description": "Super Admin exclusive: inspect all accounts across the system and filter by role (?role=manager, ?role=user, ?role=admin).",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/users?role=manager",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "role",
+                                    "value": "manager",
+                                    "description": "Options: manager, user, admin"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "active",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "q",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        }
                     }
                 },
                 {
