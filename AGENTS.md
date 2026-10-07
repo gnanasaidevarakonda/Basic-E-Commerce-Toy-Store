@@ -133,7 +133,7 @@ basic_e-commerce/
 | `GET` | `/api/v1/auth/profile` | `[AuthMiddleware]` | View authenticated user profile (Requires Bearer token) |
 | `GET` | `/api/v1/auth/user` | `[AuthMiddleware]` | Alias for profile endpoint |
 | `POST`| `/api/v1/admin/auth/login` | Public | Staff backoffice login (Managers & Super Admins) |
-| `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats, inventory & low-stock alerts |
+| `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats: products, active, low-stock, categories, customers & managers |
 | `GET` | `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Full inventory inspection (`?stock=low`) |
 | `GET` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single product complete details (even if inactive) |
 | `POST`| `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Add new toy (auto-slug, SKU uniqueness, category check) |
@@ -144,8 +144,8 @@ basic_e-commerce/
 | `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
 | `DELETE`| `/api/v1/admin/managers/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin removes/revokes a manager account |
-| `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Staff & Admins inspect all registered users/customers (`?role=&status=&q=`) |
-| `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Staff & Admins inspect single user/customer details |
+| `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Tiered user directory: Managers locked to `role='user'`; Super Admin inspects all (`?role=&status=&q=`) |
+| `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single user profile (Managers restricted to customers; 403 on staff/admins) |
 
 ---
 
@@ -176,11 +176,14 @@ basic_e-commerce/
 - `StaffMiddleware.php`: Operational access tier allowing both `manager` and `admin`.
 - `AdminMiddleware.php`: Executive access tier enforcing strictly `admin`.
 - `AdminController.php`:
-  - Executive dashboard metrics (`/api/v1/admin/dashboard`)
+  - Executive dashboard metrics (`/api/v1/admin/dashboard`) with `total_customers` count
   - Inventory inspection with low-stock filtering (`/api/v1/admin/products`)
   - Staff toy creation (`POST`) and updates (`PUT`) with automated slugification and SKU validation
   - Super Admin smart product deletion (`DELETE`) with automatic soft-delete preservation for historical orders
   - Super Admin team management: list, create, and delete managers
+  - Tiered customer directory (`/api/v1/admin/users`): Operational staff restricted strictly to customers (`role === 'user'`), Super Admin has global role filters (`?role=manager|user|admin`)
+  - Single customer inspection (`/api/v1/admin/users/{id}`) with 403 guard blocking staff from inspecting peer staff/admins
+- `postman/ToyVerse_API.postman_collection.json`: Comprehensive Postman collection with Bearer Auth, dynamic tokens, and operational vs executive folder segregation.
 - `public/index.php`: Layered route registration with strict middleware sequences.
 
 ### [CURRENT FOCUS] Phase 5.5: Production Security, Rate Limiting & Admin Panel Frontend
