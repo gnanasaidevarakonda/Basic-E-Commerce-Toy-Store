@@ -11,12 +11,16 @@ use App\Core\Response;
 use App\Controllers\CategoryController;
 use App\Controllers\ProductController;
 use App\Controllers\AuthController;
+use App\Middlewares\SecurityMiddleware;
+use App\Middlewares\RateLimitMiddleware;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\StaffMiddleware;
 use App\Middlewares\AdminMiddleware;
 
 // 2. Initialize the Router
 $router = new Router();
+(new SecurityMiddleware())->handle();
+(new RateLimitMiddleware())->handle();
 
 // Routes
 // Homepage Route: http://localhost:8080/
