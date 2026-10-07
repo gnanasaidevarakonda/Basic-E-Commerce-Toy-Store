@@ -1,0 +1,366 @@
+{
+    "info": {
+        "name": "ToyVerse E-commerce REST API",
+        "description": "Postman collection for ToyVerse Vanilla PHP 8.2+ Backend with Tiered RBAC.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "01 - Public & Catalog",
+            "item": [
+                {
+                    "name": "API Welcome Directory",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/"
+                    }
+                },
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/health"
+                    }
+                },
+                {
+                    "name": "List all Categories",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/categories"
+                    }
+                },
+                {
+                    "name": "Single Category by slug",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/categories/lego-building-sets"
+                    }
+                },
+                {
+                    "name": "List Products (Catelog with Filters)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/products?page=1&limit=10&sort=newest",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "products"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "sort",
+                                    "value": "newest"
+                                },
+                                {
+                                    "key": "q",
+                                    "value": "Lego",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "age",
+                                    "value": "6-8",
+                                    "disabled": true
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Single Product by Slug",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/products/lego-star-wars-x-wing"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "02 - Customer Authentication",
+            "item": [
+                {
+                    "name": "Register New Customer",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.token){",
+                                    " pm.environment.set('customer_token', res.data.token);",
+                                    " console.log('Customer token saved to environment!');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"full_name\": \"Alex Customer\",\n  \"email\": \"alex.test@toystore.com\",\n  \"password\": \"password123\",\n \"phone\": \"+1-555-0199\"\n}"
+                        },
+                        "url": "{{base_url}}/api/v1/auth/register"
+                    }
+                },
+                {
+                    "name": "Customer Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.token){",
+                                    " pm.environment.set('customer_token', res.data.token);",
+                                    " console.log('Customer token saved to environment!');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"customer@toystore.com\",\n  \"password\": \"customer123\"\n}"
+                        },
+                        "url": "{{base_url}}/api/v1/auth/login"
+                    }
+                },
+                {
+                    "name": "Customer Profile (Guarded)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/api/v1/auth/profile"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "03 - Backoffice Authentication",
+            "item": [
+                {
+                    "name": "Staff / Super Admin Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.token){",
+                                    " pm.environment.set('admin_token', res.data.token);",
+                                    " pm.environment.set('staff_token', res.data.token);",
+                                    " console.log('Admin & Staff token saved to environment!');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@toystore.com\",\n  \"password\": \"admin123\"\n}"
+                        },
+                        "url": "{{base_url}}/api/v1/admin/auth/login"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "04 - operational Staff (Products & Inventory)",
+            "item": [
+                {
+                    "name": "Executive Dashboard Metrics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/api/v1/admin/dashboard"
+                    }
+                },
+                {
+                    "name": "Admin Inventory List (All Products)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/products",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "products"
+                            ],
+                            "query": [
+                                {
+                                    "key": "stock",
+                                    "value": "low",
+                                    "disabled": true
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Add New Product (Manager or Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"category_id\": 1,\n  \"name\": \"Super Robot Transformer 3000\",\n  \"sku\": \"ROBOT-3000-X\",\n  \"brand\": \"MechaToys\",\n  \"age_group\": \"6-8\",\n  \"description\": \"Awesome futuristic transforming robot toy with light effects.\",\n  \"price\": 49.99,\n  \"compare_at_price\": 59.99,\n  \"stock_quantity\": 25,\n  \"is_featured\": 1,\n  \"is_active\": 1\n}"
+                        },
+                        "url": "{{base_url}}/api/v1/admin/products"
+                    }
+                },
+                {
+                    "name": "Update Product Stock & Price",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"price\": 39.99,\n  \"stock_quantity\": 50\n}"
+                        },
+                        "url": "{{base_url}}/api/v1/admin/products/1"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "05 - Super Admin Only",
+            "item": [
+                {
+                    "name": "List All Managers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/api/v1/admin/managers"
+                    }
+                },
+                {
+                    "name": "Create New Inventory Manager",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"full_name\": \"John Manager\",\n  \"email\": \"manager.john@toystore.com\",\n  \"password\": \"manager123\",\n  \"phone\": \"+1-555-8888\"\n}"
+                        },
+                        "url": "{{base_url}}/api/v1/admin/managers"
+                    }
+                },
+                {
+                    "name": "Delete / Revoke Manager",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/api/v1/admin/managers/3"
+                    }
+                },
+                {
+                    "name": "Super Admin Safe Delete Product",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/api/v1/admin/products/13"
+                    }
+                }
+            ]
+        }
+    ]
+}
