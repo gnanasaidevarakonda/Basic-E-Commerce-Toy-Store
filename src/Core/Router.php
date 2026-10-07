@@ -31,6 +31,12 @@ class Router
         $this->addRoute('DELETE', $path, $handler, $middleware);
     }
 
+    // 5. Register a PATCH route
+    public function patch(string $path, array $handler, array $middleware = []): void
+    {
+        $this->addRoute('PATCH', $path, $handler, $middleware);
+    }
+
     # Internal helper to store routes in our list.
     private function addRoute(string $method, string $path, array $handler, array $middleware): void
     {

@@ -139,6 +139,6 @@ class AdminAuthController
         Response::success([
             'user' => $user,
             'token' => $token
-        ], ucfirst($user['role']) . 'login successful.');
+        ], ucfirst($user['role']) . ' login successful.');
     }
 }

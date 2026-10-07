@@ -1,16 +1,18 @@
 {
     "info": {
-        "name": "ToyVerse E-commerce REST API",
-        "description": "Postman collection for ToyVerse Vanilla PHP 8.2+ Backend with Tiered RBAC.",
+        "name": "ToyVerse E-Commerce REST API",
+        "description": "Complete production Postman collection for ToyVerse Vanilla PHP 8.2+ Backend with Native Bearer Auth, Auto-JSON Body Selection, and Tiered RBAC.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
         {
             "name": "01 - Public & Catalog",
+            "description": "Public storefront endpoints accessible by anyone without authentication.",
             "item": [
                 {
                     "name": "API Welcome Directory",
                     "request": {
+                        "description": "Returns store name, API version, and available route directory.",
                         "method": "GET",
                         "url": "{{base_url}}/"
                     }
@@ -18,27 +20,31 @@
                 {
                     "name": "Health Check",
                     "request": {
+                        "description": "Uptime and system health verification (checks PHP version and MySQL database connection).",
                         "method": "GET",
                         "url": "{{base_url}}/api/v1/health"
                     }
                 },
                 {
-                    "name": "List all Categories",
+                    "name": "List All Categories",
                     "request": {
+                        "description": "Retrieves all active toy categories with product counts.",
                         "method": "GET",
                         "url": "{{base_url}}/api/v1/categories"
                     }
                 },
                 {
-                    "name": "Single Category by slug",
+                    "name": "Single Category by Slug",
                     "request": {
+                        "description": "Retrieves single category details using its URL slug.",
                         "method": "GET",
                         "url": "{{base_url}}/api/v1/categories/lego-building-sets"
                     }
                 },
                 {
-                    "name": "List Products (Catelog with Filters)",
+                    "name": "List Products (Catalog with Filters)",
                     "request": {
+                        "description": "Paginated, filtered toy catalog supporting category, age, brand, price range, search, and sorting.",
                         "method": "GET",
                         "url": {
                             "raw": "{{base_url}}/api/v1/products?page=1&limit=10&sort=newest",
@@ -80,6 +86,7 @@
                 {
                     "name": "Single Product by Slug",
                     "request": {
+                        "description": "Public single toy view with its complete photo gallery.",
                         "method": "GET",
                         "url": "{{base_url}}/api/v1/products/lego-star-wars-x-wing"
                     }
@@ -88,6 +95,7 @@
         },
         {
             "name": "02 - Customer Authentication",
+            "description": "Customer onboarding, login, and bearer profile retrieval.",
             "item": [
                 {
                     "name": "Register New Customer",
@@ -97,9 +105,9 @@
                             "script": {
                                 "exec": [
                                     "const res = pm.response.json();",
-                                    "if (res.data && res.data.token){",
-                                    " pm.environment.set('customer_token', res.data.token);",
-                                    " console.log('Customer token saved to environment!');",
+                                    "if (res.data && res.data.token) {",
+                                    "    pm.environment.set('customer_token', res.data.token);",
+                                    "    console.log('Customer token saved to environment!');",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -107,16 +115,16 @@
                         }
                     ],
                     "request": {
+                        "description": "Onboard a new customer (role: user). Automatically captures JWT token into {{customer_token}}.",
                         "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"full_name\": \"Alex Customer\",\n  \"email\": \"alex.test@toystore.com\",\n  \"password\": \"password123\",\n \"phone\": \"+1-555-0199\"\n}"
+                            "raw": "{\n  \"full_name\": \"Alex Customer\",\n  \"email\": \"alex.test@toystore.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+1-555-0199\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
                         "url": "{{base_url}}/api/v1/auth/register"
                     }
@@ -129,9 +137,9 @@
                             "script": {
                                 "exec": [
                                     "const res = pm.response.json();",
-                                    "if (res.data && res.data.token){",
-                                    " pm.environment.set('customer_token', res.data.token);",
-                                    " console.log('Customer token saved to environment!');",
+                                    "if (res.data && res.data.token) {",
+                                    "    pm.environment.set('customer_token', res.data.token);",
+                                    "    console.log('Customer token saved to environment!');",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -139,16 +147,16 @@
                         }
                     ],
                     "request": {
+                        "description": "Authenticate customer credentials. Automatically captures JWT token into {{customer_token}}.",
                         "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"customer@toystore.com\",\n  \"password\": \"customer123\"\n}"
+                            "raw": "{\n  \"email\": \"customer@toystore.com\",\n  \"password\": \"customer123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
                         "url": "{{base_url}}/api/v1/auth/login"
                     }
@@ -156,13 +164,18 @@
                 {
                     "name": "Customer Profile (Guarded)",
                     "request": {
+                        "description": "View authenticated customer profile. Uses native Postman Bearer Auth (no raw headers).",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{customer_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{customer_token}}"
-                            }
-                        ],
                         "url": "{{base_url}}/api/v1/auth/profile"
                     }
                 }
@@ -170,6 +183,7 @@
         },
         {
             "name": "03 - Backoffice Authentication",
+            "description": "Backoffice staff authentication gateway for Managers and Super Admins.",
             "item": [
                 {
                     "name": "Staff / Super Admin Login",
@@ -179,10 +193,10 @@
                             "script": {
                                 "exec": [
                                     "const res = pm.response.json();",
-                                    "if (res.data && res.data.token){",
-                                    " pm.environment.set('admin_token', res.data.token);",
-                                    " pm.environment.set('staff_token', res.data.token);",
-                                    " console.log('Admin & Staff token saved to environment!');",
+                                    "if (res.data && res.data.token) {",
+                                    "    pm.environment.set('admin_token', res.data.token);",
+                                    "    pm.environment.set('staff_token', res.data.token);",
+                                    "    console.log('Staff & Admin tokens saved to environment!');",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -190,16 +204,16 @@
                         }
                     ],
                     "request": {
+                        "description": "Staff login portal. Allows 'manager' and 'admin', rejects regular customers with 403. Automatically captures token into {{admin_token}}.",
                         "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"admin@toystore.com\",\n  \"password\": \"admin123\"\n}"
+                            "raw": "{\n  \"email\": \"admin@toystore.com\",\n  \"password\": \"admin123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
                         "url": "{{base_url}}/api/v1/admin/auth/login"
                     }
@@ -207,31 +221,42 @@
             ]
         },
         {
-            "name": "04 - operational Staff (Products & Inventory)",
+            "name": "04 - Operational Staff (Products & Inventory)",
+            "description": "Operational backoffice routes accessible by both Inventory Managers and Super Admins.",
             "item": [
                 {
                     "name": "Executive Dashboard Metrics",
                     "request": {
+                        "description": "High-level metrics: total products, active products, low-stock count, categories, and managers.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            }
-                        ],
                         "url": "{{base_url}}/api/v1/admin/dashboard"
                     }
                 },
                 {
                     "name": "Admin Inventory List (All Products)",
                     "request": {
+                        "description": "Full inventory view including low-stock and deactivated items. Optional ?stock=low filter.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            }
-                        ],
                         "url": {
                             "raw": "{{base_url}}/api/v1/admin/products",
                             "host": [
@@ -254,22 +279,46 @@
                     }
                 },
                 {
+                    "name": "Single Product Details (Staff / Admin)",
+                    "request": {
+                        "description": "NEW: Staff and Admins inspect any single product (even if deactivated) with its complete photo gallery URLs.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/admin/products/1"
+                    }
+                },
+                {
                     "name": "Add New Product (Manager or Admin)",
                     "request": {
+                        "description": "Staff adds a new toy to MySQL with automatic slug generation, unique SKU, and category validation.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"category_id\": 1,\n  \"name\": \"Super Robot Transformer 3000\",\n  \"sku\": \"ROBOT-3000-X\",\n  \"brand\": \"MechaToys\",\n  \"age_group\": \"6-8\",\n  \"description\": \"Awesome futuristic transforming robot toy with light effects.\",\n  \"price\": 49.99,\n  \"compare_at_price\": 59.99,\n  \"stock_quantity\": 25,\n  \"is_featured\": 1,\n  \"is_active\": 1\n}"
+                            "raw": "{\n  \"category_id\": 1,\n  \"name\": \"Super Robot Transformer 3000\",\n  \"sku\": \"ROBOT-3000-X\",\n  \"brand\": \"MechaToys\",\n  \"age_group\": \"6-8\",\n  \"description\": \"Awesome futuristic transforming robot toy with light effects.\",\n  \"price\": 49.99,\n  \"compare_at_price\": 59.99,\n  \"stock_quantity\": 25,\n  \"is_featured\": 1,\n  \"is_active\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
                         "url": "{{base_url}}/api/v1/admin/products"
                     }
@@ -277,59 +326,113 @@
                 {
                     "name": "Update Product Stock & Price",
                     "request": {
+                        "description": "Staff modifies existing product details, price, or inventory stock levels.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"price\": 39.99,\n  \"stock_quantity\": 50\n}"
+                            "raw": "{\n  \"price\": 39.99,\n  \"stock_quantity\": 50\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
                         "url": "{{base_url}}/api/v1/admin/products/1"
+                    }
+                },
+                {
+                    "name": "Toggle Product Status (Active / Inactive)",
+                    "request": {
+                        "description": "NEW: 1-click PATCH toggle to flip a toy between Active (1) and Inactive (0) without deleting it.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "url": "{{base_url}}/api/v1/admin/products/1/status"
+                    }
+                },
+                {
+                    "name": "Toggle Product Featured Status",
+                    "request": {
+                        "description": "NEW: 1-click PATCH toggle to feature or unfeature a toy on the storefront homepage.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "url": "{{base_url}}/api/v1/admin/products/1/featured"
                     }
                 }
             ]
         },
         {
             "name": "05 - Super Admin Only",
+            "description": "Executive operations restricted strictly to users with role === 'admin'.",
             "item": [
                 {
                     "name": "List All Managers",
                     "request": {
+                        "description": "Super Admin lists all registered inventory managers.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            }
-                        ],
                         "url": "{{base_url}}/api/v1/admin/managers"
                     }
                 },
                 {
                     "name": "Create New Inventory Manager",
                     "request": {
+                        "description": "Super Admin creates a new inventory manager account.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"full_name\": \"John Manager\",\n  \"email\": \"manager.john@toystore.com\",\n  \"password\": \"manager123\",\n  \"phone\": \"+1-555-8888\"\n}"
+                            "raw": "{\n  \"full_name\": \"John Manager\",\n  \"email\": \"manager.john@toystore.com\",\n  \"password\": \"manager123\",\n  \"phone\": \"+1-555-8888\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
                         "url": "{{base_url}}/api/v1/admin/managers"
                     }
@@ -337,26 +440,36 @@
                 {
                     "name": "Delete / Revoke Manager",
                     "request": {
+                        "description": "Super Admin removes/revokes a manager account by ID.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            }
-                        ],
-                        "url": "{{base_url}}/api/v1/admin/managers/3"
+                        "url": "{{base_url}}/api/v1/admin/managers/4"
                     }
                 },
                 {
                     "name": "Super Admin Safe Delete Product",
                     "request": {
+                        "description": "Super Admin deletes a product. Automatically hard-deletes if 0 orders exist; soft-deletes (is_active = 0) if historical orders exist.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{admin_token}}"
-                            }
-                        ],
                         "url": "{{base_url}}/api/v1/admin/products/13"
                     }
                 }

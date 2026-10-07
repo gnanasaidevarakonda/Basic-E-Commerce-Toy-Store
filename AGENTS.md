@@ -100,6 +100,8 @@ basic_e-commerce/
 │   ├── Middlewares/
 │   │   ├── AdminMiddleware.php    # Super Admin RBAC guard enforcing role === 'admin' (403)
 │   │   ├── AuthMiddleware.php     # Cryptographic JWT bearer guard & user caching
+│   │   ├── RateLimitMiddleware.php# Token-bucket sliding window rate limiter (429 Too Many Requests)
+│   │   ├── SecurityMiddleware.php # Security headers & bot/scanner probe protection
 │   │   └── StaffMiddleware.php    # Operational staff tier guard (manager + admin)
 │   ├── Models/
 │   │   ├── Category.php           # Categories queries
@@ -133,8 +135,11 @@ basic_e-commerce/
 | `POST`| `/api/v1/admin/auth/login` | Public | Staff backoffice login (Managers & Super Admins) |
 | `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats, inventory & low-stock alerts |
 | `GET` | `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Full inventory inspection (`?stock=low`) |
+| `GET` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single product complete details (even if inactive) |
 | `POST`| `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Add new toy (auto-slug, SKU uniqueness, category check) |
 | `PUT` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Update toy prices, stock quantity, and details |
+| `PATCH`| `/api/v1/admin/products/{id}/status`| `[AuthMiddleware, StaffMiddleware]` | Staff 1-click toggle between Active and Inactive |
+| `PATCH`| `/api/v1/admin/products/{id}/featured`| `[AuthMiddleware, StaffMiddleware]` | Staff 1-click toggle for Featured status |
 | `DELETE`| `/api/v1/admin/products/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin smart delete (hard-delete or soft-delete) |
 | `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
@@ -176,9 +181,14 @@ basic_e-commerce/
   - Super Admin team management: list, create, and delete managers
 - `public/index.php`: Layered route registration with strict middleware sequences.
 
+### [CURRENT FOCUS] Phase 5.5: Production Security, Rate Limiting & Admin Panel Frontend
+- `RateLimitMiddleware.php`: Token-bucket sliding window rate limiter (dynamic anti-brute-force on auth endpoints, 429 Too Many Requests).
+- `SecurityMiddleware.php`: Security headers (X-Frame-Options, X-Content-Type-Options) & bot probe defense.
+- `public/admin/index.html`: Responsive, vanilla HTML5/CSS/JS Backoffice Dashboard for Managers and Super Admins.
+
 ---
 
-### [CURRENT FOCUS] Phase 6: Cart & Atomic Checkout
+### [UPCOMING] Phase 6: Cart & Atomic Checkout
 - In-memory/session or database cart.
 - `Order.php`, `OrderItem.php`, `OrderController.php`.
 - **Atomic MySQL Transactions:** Safe concurrency locking (`SELECT ... FOR UPDATE`) to prevent overselling inventory during simultaneous checkouts.

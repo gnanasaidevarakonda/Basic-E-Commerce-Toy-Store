@@ -54,6 +54,9 @@ $router->get('api/v1/admin/dashboard', [AdminController::class, 'dashboard'], [A
 $router->get('/api/v1/admin/products', [AdminController::class, 'index'], [AuthMiddleware::class, StaffMiddleware::class]);
 $router->post('/api/v1/admin/products', [AdminController::class, 'store'], [AuthMiddleware::class, StaffMiddleware::class]);
 $router->put('/api/v1/admin/products/{id}', [AdminController::class, 'update'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->get('/api/v1/admin/products/{id}', [AdminController::class, 'show'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->patch('/api/v1/admin/products/{id}/status', [AdminController::class, 'toggleStatus'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->patch('/api/v1/admin/products/{id}/featured', [AdminController::class, 'toggleFeatured'], [AuthMiddleware::class, StaffMiddleware::class]);
 
 
 // Executive SUPER ADMIN ONLY ROUTES
@@ -63,7 +66,7 @@ $router->delete('/api/v1/admin/products/{id}', [AdminController::class, 'destroy
 // Team & Staff Management
 $router->get('/api/v1/admin/managers', [AdminController::class, 'listManagers'], [AuthMiddleware::class, AdminMiddleware::class]);
 $router->post('/api/v1/admin/managers', [AdminController::class, 'createManager'], [AuthMiddleware::class, AdminMiddleware::class]);
-$router->delete('/api/v1/admin/managers/{id', [AdminController::class, 'deleteManager'], [AuthMiddleware::class . AdminMiddleware::class]);
+$router->delete('/api/v1/admin/managers/{id}', [AdminController::class, 'deleteManager'], [AuthMiddleware::class, AdminMiddleware::class]);
 
 // Temporary Test Controller
 class PublicTestController
