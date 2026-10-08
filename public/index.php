@@ -33,6 +33,10 @@ $router->get('/api/v1/health', [PublicTestController::class, 'health']);
 // Category Endpoints
 $router->get('api/v1/categories', [CategoryController::class, 'index']);
 $router->get('api/v1/categories/{slug}', [CategoryController::class, 'show']);
+// subcategory endpoints
+$router->get('/api/v1/categories/{slug}/subcategories', [CategoryController::class, 'subcategories']);
+$router->get('api/v1/subcategories', [CategoryController::class, 'allSubcategories']);
+$router->get('api/v1/subcategories/{slug}', [CategoryController::class, 'singleSubcategory']);
 
 
 // Product Endpoints (catelog & single view)
@@ -61,11 +65,15 @@ $router->put('/api/v1/admin/products/{id}', [AdminController::class, 'update'], 
 $router->get('/api/v1/admin/products/{id}', [AdminController::class, 'show'], [AuthMiddleware::class, StaffMiddleware::class]);
 $router->patch('/api/v1/admin/products/{id}/status', [AdminController::class, 'toggleStatus'], [AuthMiddleware::class, StaffMiddleware::class]);
 $router->patch('/api/v1/admin/products/{id}/featured', [AdminController::class, 'toggleFeatured'], [AuthMiddleware::class, StaffMiddleware::class]);
+// Staff subcategory management--
+$router->get('api/v1/admin/subcategories', [AdminController::class, 'listSubcategories'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->post('/api/v1/admin/subcategories', [AuthController::class, 'createSubcategory'], [AuthMiddleware::class, StaffMiddleware::class]);
 
 
 // Executive SUPER ADMIN ONLY ROUTES
 // safe product deletion (hard delete junk items/soft delete items with orders)
 $router->delete('/api/v1/admin/products/{id}', [AdminController::class, 'destroy'], [AuthMiddleware::class, AdminMiddleware::class]);
+$router->delete('api/v1/admin/products/{id}', [AuthController::class, 'deleteSubcategory'], [AuthMiddleware::class, StaffMiddleware::class]);
 
 // Team & Staff Management
 $router->get('/api/v1/admin/managers', [AdminController::class, 'listManagers'], [AuthMiddleware::class, AdminMiddleware::class]);
@@ -90,6 +98,9 @@ class PublicTestController
                     'GET /api/v1/health' => 'System health & uptime check',
                     'GET /api/v1/categories' => 'List all toy categories',
                     'GET /api/v1/categories/{slug}' => 'Get Single category details',
+                    'GET /api/v1/categories/{slug}/subcategories' => 'List subcategories under a category',
+                    'GET /api/v1/subcategories' => 'List all active subcategories',
+                    'GET /api/v1/subcategories /{slug}' => 'Get any single subcategory details',
                     'GET /api/v1/products' => 'paginated & filtered toys catalog',
                     'GET /api/v1/products/{slug}' => 'Single toy with gallery images'
                 ],

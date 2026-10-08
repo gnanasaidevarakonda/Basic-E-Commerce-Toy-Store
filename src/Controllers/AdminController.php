@@ -60,11 +60,14 @@ class AdminController
         $db = Database::getConnection();
         $params = Request::getQueryParams();
 
-        $sql = "SELECT p.id, p.category_id, c.name AS category_name, p.name, p.slug, 
-                       p.sku, p.brand, p.age_group, p.price, p.compare_at_price, 
-                       p.stock_quantity, p.is_featured, p.is_active, p.created_at
+        $sql =  "SELECT p.id, p.category_id, p.subcategory_id, 
+                       c.name AS category_name, s.name AS subcategory_name, 
+                       p.name, p.slug, p.sku, p.brand, p.age_group, 
+                       p.price, p.compare_at_price, p.stock_quantity, 
+                       p.is_featured, p.is_active, p.created_at
                 FROM products p
-                INNER JOIN categories c ON p.category_id = c.id";
+                INNER JOIN categories c ON p.category_id = c.id
+                LEFT JOIN subcategories s ON p.subcategory_id = s.id";
 
         // Optional filter: view low stock items only (?stock=low)
         if (($params['stock'] ?? '') === 'low') {
@@ -90,8 +93,12 @@ class AdminController
     {
         $productId = (int) $id;
         $db = Database::getConnection();
-        $stmt = $db->prepare("SELECT p.*, c.name AS category_name, c.slug AS category_slug 
-        FROM products p INNER JOIN categories c ON p.category_id = c.id WHERE p.id = :id LIMIT 1");
+        $stmt = $db->prepare("SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                                     s.name AS subcategory_name, s.slug AS subcategory_slug
+                              FROM products p 
+                              INNER JOIN categories c ON p.category_id = c.id 
+                              LEFT JOIN subcategories s ON p.subcategory_id = s.id 
+                              WHERE p.id = :id LIMIT 1");
         $stmt->execute([':id' => $productId]);
         $product = $stmt->fetch();
 
@@ -176,6 +183,7 @@ class AdminController
 
         // 1. Sanitize & extract inputs
         $categoryId     = (int) ($body['category_id'] ?? 0);
+        $subcategoryId = !empty($body['subcategory_id']) ? (int) $body['subcategory_id'] : null;
         $name           = trim($body['name'] ?? '');
         $sku            = strtoupper(trim($body['sku'] ?? ''));
         $brand          = trim($body['brand'] ?? 'ToyVerse');
@@ -209,9 +217,9 @@ class AdminController
         }
 
         // Verify valid age group ENUM
-        $validAgeGroups = ['0-2', '3-5', '6-8', '9-12', '12+'];
+        $validAgeGroups = ['0-2', '3-5', '6-8', '9-12', '13-18', '18+'];
         if (!in_array($ageGroup, $validAgeGroups, true)) {
-            $errors['age_group'] = 'Invalid age group. Allowed: 0-2, 3-5, 6-8, 9-12, 12+.';
+            $errors['age_group'] = 'Invalid age group. Allowed: 0-2, 3-5, 6-8, 9-12, 13-18, 18+.';
         }
 
         // Verify category exists in database
@@ -219,6 +227,15 @@ class AdminController
         $catStmt->execute([':id' => $categoryId]);
         if (!$catStmt->fetch()) {
             $errors['category_id'] = 'Selected category does not exist.';
+        }
+
+        // verify subcategory belongs to this category
+        if ($subcategoryId !== null) {
+            $subStmt = $db->prepare("SELECT id FROM subcategories WHERE id = :id AND category_id = :cat_id AND is_active = 1 LIMIT 1");
+            $subStmt->execute([':id' => $subcategoryId, ':cat_id' => $categoryId]);
+            if (!$subStmt->fetch()) {
+                $errors['subcategory_id'] = 'Selected subcategory does not exist or does not belong to the selected category.';
+            }
         }
 
         if (!empty($errors)) {
@@ -233,16 +250,17 @@ class AdminController
         }
 
         // 4. Insert new toy into MySQL
-        $insertSql = "INSERT INTO products (category_id, name, slug, sku, brand, age_group, 
+        $insertSql = "INSERT INTO products (category_id, subcategory_id, name, slug, sku, brand, age_group, 
                                             description, price, compare_at_price, stock_quantity, 
                                             is_featured, is_active)
-                      VALUES (:category_id, :name, :slug, :sku, :brand, :age_group, 
+                      VALUES (:category_id, :subcategory_id, :name, :slug, :sku, :brand, :age_group, 
                               :description, :price, :compare_at_price, :stock_quantity, 
                               :is_featured, :is_active)";
 
         $stmt = $db->prepare($insertSql);
         $stmt->execute([
             ':category_id'      => $categoryId,
+            ':subcategory_id' => $subcategoryId,
             ':name'             => $name,
             ':slug'             => $slug,
             ':sku'              => $sku,
@@ -288,6 +306,7 @@ class AdminController
 
         // 2. Extract editable values (or keep existing)
         $categoryId     = isset($body['category_id']) ? (int) $body['category_id'] : (int) $existing['category_id'];
+        $subcategoryId = array_key_exists('subcategory_id', $body) ? (!empty($body['subcategory_id']) ? (int) $body['subcategory_id'] : null) : ($existing['subcategory_id'] ? (int) $existing['subcategory_id'] : null);
         $name           = isset($body['name']) ? trim($body['name']) : $existing['name'];
         $brand          = isset($body['brand']) ? trim($body['brand']) : $existing['brand'];
         $ageGroup       = $body['age_group'] ?? $existing['age_group'];
@@ -297,17 +316,30 @@ class AdminController
         $isFeatured     = isset($body['is_featured']) ? (int) $body['is_featured'] : (int) $existing['is_featured'];
         $isActive       = isset($body['is_active']) ? (int) $body['is_active'] : (int) $existing['is_active'];
 
+
+        // Validate a subcategory relationship-=-
+        if ($subcategoryId !== null) {
+            $subStmt = $db->prepare("SELECT id FROM subcategories WHERE id = :id AND category_id = :cat_id AND is_active = 1 LIMIT 1");
+            $subStmt->execute([':id' => $subcategoryId, ':cat_id' => $categoryId]);
+
+            if (!$subStmt->fetch()) {
+                Response::error('Selected subcategory does not exist or does not belong to the selected category.', 422);
+            }
+        }
+
         // 3. Execute update statement
         $updateSql = "UPDATE products 
-                      SET category_id = :category_id, name = :name, brand = :brand, 
-                          age_group = :age_group, description = :description, 
-                          price = :price, stock_quantity = :stock_quantity, 
-                          is_featured = :is_featured, is_active = :is_active 
+                      SET category_id = :category_id, subcategory_id = :subcategory_id, 
+                          name = :name, brand = :brand, age_group = :age_group, 
+                          description = :description, price = :price, 
+                          stock_quantity = :stock_quantity, is_featured = :is_featured, 
+                          is_active = :is_active 
                       WHERE id = :id";
 
         $stmt = $db->prepare($updateSql);
         $stmt->execute([
             ':category_id'    => $categoryId,
+            ':subcategory_id' => $subcategoryId,
             ':name'           => $name,
             ':brand'          => $brand,
             ':age_group'      => $ageGroup,
@@ -564,5 +596,125 @@ class AdminController
         }
 
         Response::success($user, "User details retrieved successfully.");
+    }
+
+    /**
+     * BACKOFFICE SUBCATEGOIRY MANAGEMNET----
+     * 
+     * GET /api/v1/admin/subcategories
+     * Staff & Admin: List all subcatgories with parent details and inventory count
+     * 
+     */
+    public function listSubcategories(): void
+    {
+        $db = Database::getConnection();
+        $sql = "SELECT s.*, c.name AS category_name, c.slug AS category_slug, 
+                       COUNT(p.id) AS total_products
+                FROM subcategories s
+                INNER JOIN categories c ON s.category_id = c.id
+                LEFT JOIN products p ON s.id = p.subcategory_id
+                GROUP BY s.id
+                ORDER BY c.name ASC, s.name ASC";
+
+        $stmt = $db->query($sql);
+        $subcategories = $stmt->fetchAll();
+
+        Response::success([
+            'count' => count($subcategories),
+            'subcategories' => $subcategories,
+        ], 'Admin subcategories retrieved successfully.');
+    }
+
+    /**
+     * POST /api/v1/admin/subcategories
+     * Staff & Admin: Create a new subcategory.
+     */
+    public function createSubcategory(): void
+    {
+        $body = Request::getBody();
+        $db = Database::getConnection();
+
+        $categoryId = (int) ($body['category_id'] ?? 0);
+        $name = trim($body['name'] ?? '');
+        $description = trim($body['description'] ?? '');
+        $isActive = isset($body['is_active']) ? (int) $body['is_active'] : 1;
+
+        // Auto-generate URL slug from subcategory name if not given
+        $slug = trim($body['slug'] ?? '');
+        if (empty($slug)) {
+            $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name), '-'));
+        }
+
+        $errors = [];
+        if (empty($name)) {
+            $errors['name'] = 'Subcategory name is required';
+        }
+        if ($categoryId <= 0) {
+            $errors['category_id'] = 'Valid parent category ID is required.';
+        }
+
+        // Verify parent category actually exists
+        $catStmt = $db->prepare("SELECT id FROM categories WHERE id = :id LIMIT 1");
+        $catStmt->execute([':id' => $categoryId]);
+
+        if (!$catStmt->fetch()) {
+            $errors['category_id'] = "Parent category does not exist.";
+        }
+
+        //Verify Slug Uniqueness
+        $slugStmt = $db->prepare("SELECT id FROM subcategories WHERE slug = :slug LIMIT 1");
+        $slugStmt->execute([':slug' => $slug]);
+        if ($slugStmt->fetch()) {
+            $errors['slug'] = "A subcategory with this slug already exists.";
+        }
+
+        if (!empty($errors)) {
+            Response::error('Validation failed.', 422, $errors);
+        }
+
+        $insertSql = "INSERT INTO subcategories (category_id, name, slug, description, is_active)
+                      VALUES (:category_id, :name, :slug, :description, :is_active)";
+        $stmt = $db->prepare($insertSql);
+        $stmt->execute([
+            ':category_id' => $categoryId,
+            ':name' => $name,
+            ':slug' => $slug,
+            ':description' => $description,
+            ':is_active' => $isActive
+        ]);
+
+        $newId = (int) $db->lastInsertId();
+        $fetchStmt = $db->prepare("SELECT s.*, c.name AS category_name 
+                                  FROM subcategories s 
+                                  INNER JOIN categories c ON s.category_id = c.id 
+                                  WHERE s.id = :id LIMIT 1");
+        $fetchStmt->execute([':id' => $newId]);
+
+        Response::success($fetchStmt->fetch(), 'Subcategory created successfully.', 201);
+    }
+
+    /**
+     * DELETE /api/v1/admin/subcategories/{id}
+     * Super Admin only: Remove a subcategory
+     */
+    public function deleteSubcategory(string $id): void
+    {
+        $subId = (int) $id;
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT id, name FROM subcategories WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $subId]);
+        $sub = $stmt->fetch();
+
+        if (!$sub) {
+            Response::error('Subcategory with ID {$subId} not found.', 404);
+        }
+
+        $delStmt = $db->prepare("DELETE FROM subcategories WHERE id = :id");
+        $delStmt->execute([':id' => $subId]);
+
+        Response::success([
+            'deleted_id' => $subId,
+            'deleted_name' => $sub['name']
+        ], 'Subcategory deleted successfully.');
     }
 }

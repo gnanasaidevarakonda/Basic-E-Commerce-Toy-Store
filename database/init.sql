@@ -31,16 +31,34 @@ CREATE TABLE `categories` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_categories_slug` (`slug`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+-- 2.5 SUBCATEGORIES TABLE
+DROP TABLE IF EXISTS `subcategories`;
+CREATE TABLE `subcategories` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `category_id` INT NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `slug` VARCHAR(100) NOT NULL UNIQUE,
+    `description` TEXT DEFAULT NULL,
+    `image_url` VARCHAR(255) DEFAULT NULL,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_subcategories_category` (`category_id`),
+    INDEX `idx_subcategories_slug` (`slug`),
+    INDEX `idx_subcategories_active` (`is_active`),
+    CONSTRAINT `fk_subcategories_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- 3. PRODUCTS TABLE
 DROP TABLE IF EXISTS `products`;
 CREATE TABLE `products` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `category_id` INT NOT NULL,
+    `subcategory_id` INT DEFAULT NULL,
     `name` VARCHAR(150) NOT NULL,
     `slug` VARCHAR(150) NOT NULL UNIQUE,
     `sku` VARCHAR(50) NOT NULL UNIQUE,
     `brand` VARCHAR(100) DEFAULT NULL,
-    `age_group` ENUM('0-2', '3-5', '6-8', '9-12', '12+') NOT NULL DEFAULT '3-5',
+    `age_group` ENUM('0-2', '3-5', '6-8', '9-12', '13-18', '18+') NOT NULL DEFAULT '3-5',
     `description` TEXT DEFAULT NULL,
     `price` DECIMAL(10, 2) NOT NULL,
     `compare_at_price` DECIMAL(10, 2) DEFAULT NULL,
@@ -50,11 +68,14 @@ CREATE TABLE `products` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_products_category` (`category_id`),
+    INDEX `idx_products_subcategory`(`subcategory_id`),
     INDEX `idx_products_slug` (`slug`),
     INDEX `idx_products_age` (`age_group`),
     INDEX `idx_products_price` (`price`),
     FULLTEXT `ft_products_name_desc` (`name`, `description`),
-    CONSTRAINT `fk_products_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT `fk_products_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_products_subcategory` FOREIGN KEY(`subcategory_id`) REFERENCES `subcategories`(`id`) ON DELETE
+    SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- 4. PRODUCT IMAGES TABLE
 DROP TABLE IF EXISTS `product_images`;
@@ -212,6 +233,99 @@ VALUES (
         1
     ) ON DUPLICATE KEY
 UPDATE `id` = `id`;
+-- Subcategories Seed
+INSERT INTO `subcategories` (
+        `id`,
+        `category_id`,
+        `name`,
+        `slug`,
+        `description`
+    )
+VALUES (
+        1,
+        1,
+        'Robots & Mecha',
+        'robots-mecha',
+        'Futuristic robots, mechs, and battle droids.'
+    ),
+    (
+        2,
+        1,
+        'Ninjas & Martial Arts',
+        'ninjas-martial-arts',
+        'Stealth warriors, katana fighters, and martial artists.'
+    ),
+    (
+        3,
+        1,
+        'Anime & Collectibles',
+        'anime-collectibles',
+        'Highly detailed anime statues and collector figures (18+).'
+    ),
+    (
+        4,
+        2,
+        'Space & Sci-Fi Sets',
+        'space-scifi-sets',
+        'Interstellar cruisers, rocket bases, and planetary rovers.'
+    ),
+    (
+        5,
+        2,
+        'Castles & Medieval',
+        'castles-medieval',
+        'Fortresses, drawbridges, and knight adventures.'
+    ),
+    (
+        6,
+        2,
+        'Technic & Advanced Models',
+        'technic-advanced-models',
+        'Complex gears, motors, and realistic scale supercar kits (18+).'
+    ),
+    (
+        7,
+        3,
+        'Tabletop Strategy',
+        'tabletop-strategy',
+        'Colony building, economic trading, and tactical board games.'
+    ),
+    (
+        8,
+        3,
+        'Dungeon Crawlers & RPG',
+        'dungeon-crawlers-rpg',
+        'Co-op tabletop dungeon adventures and miniature roleplaying.'
+    ),
+    (
+        9,
+        4,
+        'Robotics & Coding',
+        'robotics-coding',
+        'Programmable bionic spiders, STEM rovers, and coding tools.'
+    ),
+    (
+        10,
+        4,
+        'Solar & Clean Energy',
+        'solar-clean-energy',
+        'Eco-friendly renewable science experiment kits.'
+    ),
+    (
+        11,
+        5,
+        'Blasters & Action Gear',
+        'blasters-action-gear',
+        'Dart blasters, tactical goggles, and outdoor active gear.'
+    ),
+    (
+        12,
+        6,
+        'Plush & Stuffed Animals',
+        'plush-stuffed-animals',
+        'Super-soft cuddly plushies and collector stuffed companions.'
+    ) ON DUPLICATE KEY
+UPDATE `id` = `id`;
 -- Products Seed
 INSERT INTO `products` (
         `id`,
@@ -285,7 +399,7 @@ VALUES (
         'island-colonizer-game',
         'TOY-BRD-001',
         'HexPlay',
-        '12+',
+        '13-18',
         'Award-winning tabletop strategy game of trade, resource management, and settlement expansion.',
         44.99,
         50,
@@ -298,7 +412,7 @@ VALUES (
         'mythic-dungeon-explorer',
         'TOY-BRD-002',
         'DiceQuest',
-        '12+',
+        '18+',
         'Cooperative dungeon crawl board game featuring modular tiles, custom dice, and 6 hero classes.',
         49.99,
         25,

@@ -75,7 +75,7 @@ basic_e-commerce/
 │       └── learning_rules.md      # One-file-at-a-time, pedagogical guidelines
 ├── database/
 │   ├── init.sql                   # Master auto-loader SQL script (Schemas + Seeds)
-│   ├── schemas/                   # Individual table schemas
+│   ├── schemas/                   # Individual table schemas (users, categories, subcategories, products...)
 │   └── seeds/                     # toys_seed.sql
 ├── docker/
 │   ├── nginx/
@@ -87,9 +87,9 @@ basic_e-commerce/
 ├── src/
 │   ├── Controllers/
 │   │   ├── AdminAuthController.php# Backoffice staff login with RBAC role checks
-│   │   ├── AdminController.php    # Catalog CRUD, smart deletion, dashboard metrics, staff CRUD
+│   │   ├── AdminController.php    # Catalog CRUD, subcategory CRUD, smart deletion, dashboard metrics, staff CRUD
 │   │   ├── AuthController.php     # Public register, login, and guarded profile
-│   │   ├── CategoryController.php # List categories, show by slug
+│   │   ├── CategoryController.php # List categories, show by slug, subcategories by category
 │   │   └── ProductController.php  # Paginated/filtered catalog, single toy view
 │   ├── Core/
 │   │   ├── Autoloader.php         # PSR-4 autoloader mapping App\ to src/
@@ -105,7 +105,8 @@ basic_e-commerce/
 │   │   └── StaffMiddleware.php    # Operational staff tier guard (manager + admin)
 │   ├── Models/
 │   │   ├── Category.php           # Categories queries
-│   │   ├── Product.php            # Filtered/paginated products with fulltext search
+│   │   ├── Subcategory.php        # Subcategories queries by parent category and slug
+│   │   ├── Product.php            # Filtered/paginated products with subcategories & age groups
 │   │   └── User.php               # Bcrypt password hashing, findByEmail, findById, create
 │   └── Services/
 │       └── JWTService.php         # Stateless HMAC-SHA256 token generator & validator
@@ -126,7 +127,10 @@ basic_e-commerce/
 | `GET` | `/api/v1/health` | Public | Uptime, PHP version, and database check |
 | `GET` | `/api/v1/categories` | Public | List all active toy categories |
 | `GET` | `/api/v1/categories/{slug}` | Public | Single category details |
-| `GET` | `/api/v1/products` | Public | Paginated toys with filters (`?category=&age=&search=`) |
+| `GET` | `/api/v1/categories/{slug}/subcategories` | Public | List subcategories belonging to parent category |
+| `GET` | `/api/v1/subcategories` | Public | List all active subcategories across store |
+| `GET` | `/api/v1/subcategories/{slug}` | Public | Single subcategory details by slug |
+| `GET` | `/api/v1/products` | Public | Paginated toys with filters (`?category=&subcategory=&age=&search=`) |
 | `GET` | `/api/v1/products/{slug}` | Public | Single toy details with full image gallery |
 | `POST`| `/api/v1/auth/register` | Public | Register new customer (`role: 'user'`, returns JWT) |
 | `POST`| `/api/v1/auth/login` | Public | Authenticate customer credentials (returns JWT) |
@@ -136,10 +140,13 @@ basic_e-commerce/
 | `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats: products, active, low-stock, categories, customers & managers |
 | `GET` | `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Full inventory inspection (`?stock=low`) |
 | `GET` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single product complete details (even if inactive) |
-| `POST`| `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Add new toy (auto-slug, SKU uniqueness, category check) |
-| `PUT` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Update toy prices, stock quantity, and details |
+| `POST`| `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Add new toy (auto-slug, SKU uniqueness, category & subcategory validation) |
+| `PUT` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Update toy prices, stock quantity, subcategory, and details |
 | `PATCH`| `/api/v1/admin/products/{id}/status`| `[AuthMiddleware, StaffMiddleware]` | Staff 1-click toggle between Active and Inactive |
 | `PATCH`| `/api/v1/admin/products/{id}/featured`| `[AuthMiddleware, StaffMiddleware]` | Staff 1-click toggle for Featured status |
+| `GET` | `/api/v1/admin/subcategories`| `[AuthMiddleware, StaffMiddleware]` | Staff list all subcategories with inventory counts |
+| `POST`| `/api/v1/admin/subcategories`| `[AuthMiddleware, StaffMiddleware]` | Staff create new subcategory under a category |
+| `DELETE`| `/api/v1/admin/subcategories/{id}`| `[AuthMiddleware, AdminMiddleware]`| Super Admin delete subcategory (safely unlinks toys) |
 | `DELETE`| `/api/v1/admin/products/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin smart delete (hard-delete or soft-delete) |
 | `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
@@ -187,9 +194,9 @@ basic_e-commerce/
 - `public/index.php`: Layered route registration with strict middleware sequences.
 
 ### [CURRENT FOCUS] Phase 5.5: Production Security, Rate Limiting & Admin Panel Frontend
-- `RateLimitMiddleware.php`: Token-bucket sliding window rate limiter (dynamic anti-brute-force on auth endpoints, 429 Too Many Requests).
-- `SecurityMiddleware.php`: Security headers (X-Frame-Options, X-Content-Type-Options) & bot probe defense.
-- `public/admin/index.html`: Responsive, vanilla HTML5/CSS/JS Backoffice Dashboard for Managers and Super Admins.
+- [DONE] `RateLimitMiddleware.php`: Token-bucket sliding window rate limiter (dynamic anti-brute-force on auth endpoints, 429 Too Many Requests).
+- [DONE] `SecurityMiddleware.php`: Security headers (X-Frame-Options, X-Content-Type-Options) & bot probe defense.
+- [IN-PROGRESS] `public/admin/index.html`: Responsive, vanilla HTML5/CSS/JS Backoffice Dashboard for Managers and Super Admins.
 
 ---
 

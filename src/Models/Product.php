@@ -12,8 +12,9 @@ class Product
         $db = Database::getConnection();
 
         // Base query with joins for category and primary thumbnail image
-        $baseSql = "FROM products p INNER JOIN categories c ON p.category_id  = c.id LEFT JOIN
-        product_images pi ON p.id=pi.product_id AND pi.is_primary =1 WHERE p.is_active =1";
+        $baseSql = "FROM products p INNER JOIN categories c ON p.category_id = c.id LEFT JOIN subcategories s ON 
+        p.subcategory_id = s.id LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1 WHERE 
+        p.is_active = 1";
 
         $params = [];
 
@@ -21,6 +22,12 @@ class Product
         if (!empty($filters['category'])) {
             $baseSql .= " AND c.slug = :category";
             $params[':category'] = $filters['category'];
+        }
+
+        // 1.5 filter by subcategorie slug
+        if (!empty($filters['subcategory'])) {
+            $baseSql .= " AND s.slug = :subcategory";
+            $params[':subcategory'] = $filters['subcategory'];
         }
 
         // 2. Filter by Brand 
@@ -91,10 +98,13 @@ class Product
 
         // STEP D: Fetch the products for current page
 
-        $selectSql = "SELECT p.id, p.name, p.slug, p.sku, p.brand, p.age_group,
-        p.price, p.compare_at_price, p.stock_quantity, p.is_featured, c.name AS category_name,
-        c.slug AS category_slug, COALESCE(MAX(pi.image_url), 'https://placehold.co/600x400?text=No+Image') AS primary_image {$baseSql}
-        GROUP BY p.id {$orderBy} LIMIT {$limit} OFFSET {$offset}";
+        $selectSql = "SELECT p.id, p.category_id, p.subcategory_id, p.name, p.slug, p.sku, 
+                             p.brand, p.age_group, p.price, p.compare_at_price, p.stock_quantity, 
+                             p.is_featured, c.name AS category_name, c.slug AS category_slug,
+                             s.name AS subcategory_name, s.slug AS subcategory_slug,
+                             COALESCE(MAX(pi.image_url), 'https://placehold.co/600x400?text=No+Image') AS primary_image 
+                      {$baseSql}
+                      GROUP BY p.id {$orderBy} LIMIT {$limit} OFFSET {$offset}";
 
         $stmt = $db->prepare($selectSql);
         $stmt->execute($params);
@@ -120,9 +130,16 @@ class Product
         $db = Database::getConnection();
 
         // 1. Fetch product details
-        $sql = "SELECT p.id, p.category_id, c.name AS category_name, c.slug AS category_slug,
-        p.name, p.slug, p.sku, p.brand, p.age_group, p.description, p.price, p.compare_at_price, p.stock_quantity, p.is_featured, p.created_at 
-        FROM products p INNER JOIN categories c ON p.category_id =c.id WHERE p.slug=:slug AND p.is_active =1 LIMIT 1";
+        $sql = "SELECT p.id, p.category_id, p.subcategory_id,
+                       c.name AS category_name, c.slug AS category_slug,
+                       s.name AS subcategory_name, s.slug AS subcategory_slug,
+                       p.name, p.slug, p.sku, p.brand, p.age_group, p.description, 
+                       p.price, p.compare_at_price, p.stock_quantity, p.is_featured, p.created_at 
+                FROM products p 
+                INNER JOIN categories c ON p.category_id = c.id 
+                LEFT JOIN subcategories s ON p.subcategory_id = s.id
+                WHERE p.slug = :slug AND p.is_active = 1 
+                LIMIT 1";
 
         $stmt = $db->prepare($sql);
         $stmt->execute([':slug' => $slug]);

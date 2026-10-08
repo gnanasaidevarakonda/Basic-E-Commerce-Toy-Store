@@ -42,6 +42,30 @@
                     }
                 },
                 {
+                    "name": "List Subcategories by Category Slug",
+                    "request": {
+                        "description": "Retrieved alla ctive subcategories belonging to a specific parent category slug",
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/categories/action-figures/subcategories"
+                    }
+                },
+                {
+                    "name": "List All Subcategories",
+                    "request": {
+                        "description": "Retrieved all active subcategories across the entire store with parent category details and product counts.",
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/subcategories"
+                    }
+                },
+                {
+                    "name": "Single Subcategory by Slug",
+                    "request": {
+                        "description": "Retrieved single subcategory details using it's URL Slug.",
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/subcategories/robots-mecha"
+                    }
+                },
+                {
                     "name": "List Products (Catalog with Filters)",
                     "request": {
                         "description": "Paginated, filtered toy catalog supporting category, age, brand, price range, search, and sorting.",
@@ -57,6 +81,11 @@
                                 "products"
                             ],
                             "query": [
+                                {
+                                    "key": "subcategory",
+                                    "value": "robots-mecha",
+                                    "disabled": true
+                                },
                                 {
                                     "key": "page",
                                     "value": "1"
@@ -387,6 +416,51 @@
                     }
                 },
                 {
+                    "name": "Admin List All Subcategories",
+                    "request": {
+                        "description": "Staff lists all subcategories across the store with parent categories and inventory counts.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/admin/subcategories"
+                    }
+                },
+                {
+                    "name": "Staff Create Subcategory",
+                    "request": {
+                        "description": "Staff creates a new subcategory linked to an existing parent category.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"category_id\": 1,\n  \"name\": \"Superheroes & Comics\",\n  \"slug\": \"superheroes-comics\",\n  \"description\": \"Marvel, DC, and classic comic action figures.\",\n  \"is_active\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/api/v1/admin/subcategories"
+                    }
+                },
+                {
                     "name": "List Customer Directory (Staff & Admin)",
                     "request": {
                         "description": "Inscpect registered customer directory. Operational managers are strictly restricted to customers only. Any ?role query parameter passed by managers is ignored.",
@@ -578,6 +652,24 @@
                         },
                         "method": "DELETE",
                         "url": "{{base_url}}/api/v1/admin/products/13"
+                    }
+                },
+                {
+                    "name": "Super Admin Delete Subcategory",
+                    "request": {
+                        "description": "Super Admin deletes a subcategory. Associated toys are safely preserved with subcategory_id set to NULL.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "url": "{{base_url}}/api/v1/admin/subcategories/13"
                     }
                 }
             ]
