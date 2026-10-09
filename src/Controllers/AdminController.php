@@ -217,9 +217,9 @@ class AdminController
         }
 
         // Verify valid age group ENUM
-        $validAgeGroups = ['0-2', '3-5', '6-8', '9-12', '13-18', '18+'];
+        $validAgeGroups = ['0-2', '3-5', '6-8', '9-12', '13-17', '18+'];
         if (!in_array($ageGroup, $validAgeGroups, true)) {
-            $errors['age_group'] = 'Invalid age group. Allowed: 0-2, 3-5, 6-8, 9-12, 13-18, 18+.';
+            $errors['age_group'] = 'Invalid age group. Allowed: 0-2, 3-5, 6-8, 9-12, 13-17, 18+.';
         }
 
         // Verify category exists in database
@@ -412,6 +412,11 @@ class AdminController
      */
     public function listManagers(): void
     {
+
+        $caller = AuthMiddleware::user();
+        if (($caller['role'] ?? '') !== 'admin') {
+            Response::error('Forbidden: Super Admin Privileges required.', 403);
+        }
         $db = Database::getConnection();
 
         $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, created_at 
@@ -424,6 +429,32 @@ class AdminController
             'count'    => count($managers),
             'managers' => $managers
         ], 'Inventory managers list retrieved successfully.');
+    }
+
+    /**
+     * GET /api/v1/admin/managers/{id}
+     * SUPER ADMIN only: Inspect a single manager's profile
+     */
+    public function showManager(string $id): void
+    {
+        $caller = AuthMiddleware::user();
+        if (($caller['role'] ?? '') !== 'admin') {
+            Response::error('Forbidden: Super Admin Privilages required.', 403);
+        }
+
+        $managerId = (int) $id;
+        $db = Database::getConnection();
+
+        $stmt = $db->prepare("SELECT id, full_name, email, phone, role, is_active, created_at, updated_at 
+        FROM users WHERE id=:id AND role = 'manager' LIMIT 1");
+        $stmt->execute([':id' => $managerId]);
+        $manager = $stmt->fetch();
+
+        if (!$manager) {
+            Response::error("Manager with ID {$managerId} not found.", 404);
+        }
+
+        Response::success($manager, ' Manager details retrieved succesfully.');
     }
 
     /**
@@ -521,18 +552,10 @@ class AdminController
         $sql = "SELECT id, full_name, email, phone, role, is_active, created_at, updated_at FROM users WHERE 1=1";
         $bind = [];
 
-        // 2. Tired RBAC Role Enforecemt
-        if ($isSuperAdmin) {
-            // Super admin can freely filter by any role
-            if (!empty($params['role'])) {
-                $sql .= " AND role = :role";
-                $bind[':role'] = strtolower(trim($params['role']));
-            }
-        } else {
-            // Operational Staff: Strictly lock query to customer accounts only
-            // Any ?role parameter passed by staff is ignored to prevent privilage leakage
-            $sql .= " AND role = 'user'";
-        }
+        // 2. Strictly lock user query to customer accounts only (role = 'user')
+        // Managers and staff accounts are managed exclusively via /api/v1/admin/managers
+
+        $sql .= " AND role = 'user'";
 
         // 3. Filter by Active Status
         if (!empty($params['status'])) {

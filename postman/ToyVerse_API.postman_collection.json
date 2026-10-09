@@ -546,9 +546,9 @@
                     }
                 },
                 {
-                    "name": "List Users with Role Filter (Super Admin Only)",
+                    "name": "Get Single Manager Details",
                     "request": {
-                        "description": "Super Admin exclusive: inspect all accounts across the system and filter by role (?role=manager, ?role=user, ?role=admin).",
+                        "description": "Super Admin inspects a single manager's profile by ID.",
                         "auth": {
                             "type": "bearer",
                             "bearer": [
@@ -560,35 +560,7 @@
                             ]
                         },
                         "method": "GET",
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/admin/users?role=manager",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "admin",
-                                "users"
-                            ],
-                            "query": [
-                                {
-                                    "key": "role",
-                                    "value": "manager",
-                                    "description": "Options: manager, user, admin"
-                                },
-                                {
-                                    "key": "status",
-                                    "value": "active",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "q",
-                                    "value": "",
-                                    "disabled": true
-                                }
-                            ]
-                        }
+                        "url": "{{base_url}}/api/v1/admin/managers/3"
                     }
                 },
                 {

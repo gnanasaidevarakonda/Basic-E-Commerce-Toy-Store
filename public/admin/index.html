@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToyVerse Backoffice | Executive Control</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Modular Stylesheet -->
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+
+    <!-- 1. POSH GREETING SPLASH OVERLAY -->
+    <div id="greeting-splash">
+        <div class="greeting-card">
+            <div style="font-size: 3.5rem; margin-bottom: 12px;">🚀</div>
+            <h2 id="greeting-user" style="font-size: 1.75rem; font-weight: 800; color: #fff; margin-bottom: 8px;">Hello
+                Admin! 👋</h2>
+            <p style="color: var(--mint-300); font-size: 0.95rem; font-weight: 600;">Welcome to ToyVerse Executive
+                Control</p>
+            <div class="laser-loader">
+                <div class="laser-bar" id="laser-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container"></div>
+
+    <!-- 3. LOGIN VIEW -->
+    <div id="login-view"
+        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;">
+        <div class="glass-panel" style="width: 100%; max-width: 420px; padding: 40px; text-align: center;">
+            <div style="font-size: 2.8rem; margin-bottom: 12px;">🧸</div>
+            <h2 style="font-size: 1.75rem; font-weight: 800; color: #fff; letter-spacing: -0.5px;">ToyVerse Admin</h2>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Backoffice & Inventory Command
+            </p>
+
+            <form id="login-form" style="margin-top: 28px; text-align: left;">
+                <div class="form-group">
+                    <label class="form-label" for="login-email">Staff Email</label>
+                    <input type="email" id="login-email" class="form-input" placeholder="admin@toystore.com" required
+                        autocomplete="username">
+                </div>
+                <div class="form-group" style="margin-top: 16px;">
+                    <label class="form-label" for="login-password">Password</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="••••••••" required
+                        autocomplete="current-password">
+                </div>
+                <!-- Issue 1 Fix: Explicitly named "Login" with zero sticky state after logout -->
+                <button type="submit" id="btn-login-submit" class="btn-3d btn-3d-primary"
+                    style="width: 100%; margin-top: 24px; padding: 12px; font-size: 0.95rem;">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. DASHBOARD VIEW -->
+    <div id="dashboard-view" style="display: none;">
+        <!-- Header & Topbar Navigation -->
+        <header>
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.8rem;">🧸</span>
+                    <span
+                        style="font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; color: #fff;">ToyVerse</span>
+                </div>
+                <span class="brand-badge">Backoffice</span>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <button class="nav-tab-btn active" onclick="switchTab('catalog')">📦 Product Catalog</button>
+                <button id="tab-btn-staff" class="nav-tab-btn" onclick="switchTab('staff')">👥 Team & Staff</button>
+            </div>
+
+            <!-- Currency Switcher, User Profile & Logout -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <!-- Issue 3: Multi-Currency Dropdown (Default ₹ INR) -->
+                <div class="currency-pill">
+                    <span style="font-size: 0.9rem;">🌐</span>
+                    <select id="currency-select" class="currency-select" onchange="changeCurrency(this.value)">
+                        <option value="INR" selected>INR (₹)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                    </select>
+                </div>
+                <span id="user-display"
+                    style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Staff (ADMIN)</span>
+                <button id="btn-logout" class="btn-3d btn-3d-secondary" style="padding: 7px 14px; font-size: 0.8rem;">🚪
+                    Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <main style="max-width: 1400px; margin: 0 auto; padding: 32px 24px;">
+
+            <!-- SECTION A: PRODUCT CATALOG -->
+            <div id="section-catalog">
+                <!-- Stats Overview Grid -->
+                <div class="stats-grid">
+                    <div class="glass-panel stat-card" onclick="filterCatalog('all')">
+                        <span class="form-label">Total Inventory</span>
+                        <span class="stat-value" id="stat-total-products">0</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">All SKU records in catalog</span>
+                    </div>
+                    <div class="glass-panel stat-card" onclick="filterCatalog('active')">
+                        <span class="form-label">Live on Store</span>
+                        <span class="stat-value" id="stat-active-products" style="color: var(--mint-400);">0</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Available to shoppers</span>
+                    </div>
+                    <div class="glass-panel stat-card" onclick="filterCatalog('low-stock')">
+                        <span class="form-label">Low Stock Alert</span>
+                        <span class="stat-value" id="stat-low-stock" style="color: #f87171;">0</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Units remaining &le; 5</span>
+                    </div>
+                    <div class="glass-panel stat-card">
+                        <span class="form-label">Customer Accounts</span>
+                        <span class="stat-value" id="stat-customers" style="color: #38bdf8;">0</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Registered shoppers</span>
+                    </div>
+                </div>
+
+                <!-- Action Controls & Live Search Bar -->
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; max-width: 600px;">
+                        <input type="text" id="search-input" class="form-input"
+                            placeholder="🔍 Search toys by name, SKU, brand, age..." style="width: 100%;">
+                        <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
+                            onclick="filterCatalog('all')">All</button>
+                        <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
+                            onclick="filterCatalog('active')">Live</button>
+                        <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
+                            onclick="filterCatalog('low-stock')">⚠️ Low</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button class="btn-3d btn-3d-primary" onclick="openAddToyModal()">
+                            ✨ Add Toy
+                        </button>
+                        <button class="btn-3d btn-3d-secondary" onclick="openModal('add-category-modal')">
+                            📁 Add Category
+                        </button>
+                        <button class="btn-3d btn-3d-secondary" onclick="openModal('add-sub-modal')">
+                            📂 Add Subcategory
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="glass-panel table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Toy / SKU</th>
+                                <th>Category</th>
+                                <th>Age Group</th>
+                                <th>Price (<span class="curr-sym">₹</span>)</th>
+                                <th>Stock</th>
+                                <th>Featured</th>
+                                <th>Live Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body">
+                            <!-- Populated dynamically via admin.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SECTION B: TEAM & STAFF DIRECTORY (ADMIN ONLY) -->
+            <div id="section-staff" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff;">Team & Staff Directory</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Manage store
+                            managers, staff privileges, and revoke backoffice access</p>
+                    </div>
+                    <button class="btn-3d btn-3d-primary" onclick="openModal('add-manager-modal')">
+                        ➕ Onboard Manager
+                    </button>
+                </div>
+
+                <div class="glass-panel table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Staff Member</th>
+                                <th>Contact</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th style="text-align: right;">Security</th>
+                            </tr>
+                        </thead>
+                        <tbody id="managers-table-body">
+                            <!-- Populated dynamically via admin.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODALS                                                                -->
+    <!-- ===================================================================== -->
+
+    <!-- MODAL 1: ADD / EDIT TOY (WITH STRUCTURED DESCRIPTIONS & SPECS) -->
+    <div id="toy-form-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h3 id="toy-modal-title" style="margin-bottom: 20px; font-size: 1.25rem; color: #fff;">Add New Toy to
+                Inventory</h3>
+            <form id="toy-form">
+                <input type="hidden" id="form-toy-id">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="toy-name">Toy Title *</label>
+                        <input type="text" id="toy-name" class="form-input" placeholder="e.g. Astro Explorer Drone"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="toy-sku">SKU Code *</label>
+                        <input type="text" id="toy-sku" class="form-input" placeholder="e.g. TOY-DRN-001" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="toy-category">Main Category *</label>
+                        <select id="toy-category" class="form-select" onchange="handleCategoryChange()" required>
+                            <option value="">Select Category...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="toy-subcategory">Subcategory</label>
+                        <select id="toy-subcategory" class="form-select">
+                            <option value="">Select Subcategory...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="toy-brand">Brand / Manufacturer</label>
+                        <input type="text" id="toy-brand" class="form-input" placeholder="e.g. AeroTech Labs">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="toy-age">Age Group *</label>
+                        <select id="toy-age" class="form-select" required>
+                            <option value="0-2">0 - 2 Years</option>
+                            <option value="3-5">3 - 5 Years</option>
+                            <option value="6-8" selected>6 - 8 Years</option>
+                            <option value="9-12">9 - 12 Years</option>
+                            <option value="13-17">13 - 17 Years (Teens)</option>
+                            <option value="18+">18+ Years (Collectors)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="toy-price">Base Price (<span class="curr-sym">₹</span>) *</label>
+                        <input type="number" id="toy-price" class="form-input" step="0.01" min="0" placeholder="1499.00"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="toy-stock">Stock Units *</label>
+                        <input type="number" id="toy-stock" class="form-input" min="0" placeholder="50" required>
+                    </div>
+                </div>
+
+                <!-- Structured E-Commerce Description (Issue 2 Solution) -->
+                <div class="form-group">
+                    <label class="form-label" for="toy-desc-para">1. Overview Narrative (Paragraph)</label>
+                    <textarea id="toy-desc-para" class="form-textarea" rows="3"
+                        placeholder="A brief, engaging introductory paragraph describing what makes this toy exciting..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="toy-desc-bullets">2. Feature Highlights (Bullet Points &mdash; 1 per
+                        line)</label>
+                    <textarea id="toy-desc-bullets" class="form-textarea" rows="3"
+                        placeholder="Aerospace-grade shatter-resistant frame&#10;2.4GHz remote controller with 100m range&#10;USB-C rechargeable 1200mAh battery"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="toy-desc-specs">3. Technical Specifications (Key: Value &mdash; 1 per
+                        line)</label>
+                    <textarea id="toy-desc-specs" class="form-textarea" rows="3"
+                        placeholder="Material: Non-Toxic ABS Polymer&#10;Battery Life: 45 Minutes Flight Time&#10;Weight: 420 Grams&#10;Warranty: 1 Year Manufacturer Warranty"></textarea>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                    <label class="toggle-3d">
+                        <input type="checkbox" id="toy-featured">
+                        <span class="toggle-track"><span class="toggle-knob"></span></span>
+                    </label>
+                    <span style="font-size: 0.85rem; font-weight: 600;">Promote as Featured Product on Storefront</span>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="btn-3d btn-3d-secondary"
+                        onclick="closeModal('toy-form-modal')">Cancel</button>
+                    <button type="submit" id="btn-toy-submit" class="btn-3d btn-3d-primary">Save to Catalog</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: 3D PRODUCT DETAILS INSPECTOR -->
+    <div id="view-toy-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <span id="view-toy-sku" class="badge badge-sub" style="font-family: 'JetBrains Mono';">SKU</span>
+                <button class="btn-3d btn-3d-secondary" style="padding: 4px 10px; font-size: 0.75rem;"
+                    onclick="closeModal('view-toy-modal')">✕</button>
+            </div>
+            <h3 id="view-toy-name" style="margin-bottom: 16px; font-size: 1.4rem; color: #fff;">Toy Name</h3>
+            <img id="view-toy-image" src="" alt="Toy Image"
+                style="width: 100%; max-height: 240px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 16px; border: 1px solid var(--border-subtle); background: #000;">
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+                <span id="view-toy-category" class="badge badge-cat"></span>
+                <span id="view-toy-subcategory" class="badge badge-sub"></span>
+                <span id="view-toy-age" class="badge badge-age"></span>
+            </div>
+
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); margin-bottom: 16px;">
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Unit Price</span>
+                    <span id="view-toy-price" class="price-text"
+                        style="font-size: 1.3rem; color: var(--mint-300);">₹0.00</span>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Inventory</span>
+                    <span id="view-toy-stock" style="font-weight: 700; color: #fff;">0 units</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Structured Specs and Features Injection -->
+            <div id="view-toy-desc-container"></div>
+
+            <button type="button" class="btn-3d btn-3d-secondary" style="margin-top: 24px; width: 100%;"
+                onclick="closeModal('view-toy-modal')">Close Window</button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: ADD MAIN CATEGORY -->
+    <div id="add-category-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 20px; font-size: 1.25rem; color: #fff;">Create Main Category</h3>
+            <form id="add-category-form">
+                <div class="form-group">
+                    <label class="form-label" for="cat-name">Category Name *</label>
+                    <input type="text" id="cat-name" class="form-input" placeholder="e.g. Electronic & RC Toys"
+                        required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cat-image">Cover Image URL</label>
+                    <input type="url" id="cat-image" class="form-input" placeholder="https://images.unsplash.com/...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cat-desc">Description</label>
+                    <textarea id="cat-desc" class="form-textarea" rows="3"
+                        placeholder="Category highlights and catalog description..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-3d btn-3d-secondary"
+                        onclick="closeModal('add-category-modal')">Cancel</button>
+                    <button type="submit" id="btn-cat-submit" class="btn-3d btn-3d-primary">Create Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: ADD SUBCATEGORY -->
+    <div id="add-sub-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 20px; font-size: 1.25rem; color: #fff;">Create Subcategory</h3>
+            <form id="add-sub-form">
+                <div class="form-group">
+                    <label class="form-label" for="sub-parent-category">Parent Category *</label>
+                    <select id="sub-parent-category" class="form-select" required>
+                        <option value="">Select Parent Category...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="sub-name">Subcategory Name *</label>
+                    <input type="text" id="sub-name" class="form-input" placeholder="e.g. Remote Controlled Drones"
+                        required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="sub-description">Description</label>
+                    <textarea id="sub-description" class="form-textarea" rows="3"
+                        placeholder="Subcategory details..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-3d btn-3d-secondary"
+                        onclick="closeModal('add-sub-modal')">Cancel</button>
+                    <button type="submit" id="btn-sub-submit" class="btn-3d btn-3d-primary">Create Subcategory</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 5: ONBOARD MANAGER / STAFF -->
+    <div id="add-manager-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 20px; font-size: 1.25rem; color: #fff;">Onboard Team Manager</h3>
+            <form id="add-manager-form">
+                <div class="form-group">
+                    <label class="form-label" for="mgr-name">Full Name *</label>
+                    <input type="text" id="mgr-name" class="form-input" placeholder="e.g. Vikram Sharma" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mgr-email">Work Email *</label>
+                    <input type="email" id="mgr-email" class="form-input" placeholder="vikram@toystore.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mgr-pass">Initial Password *</label>
+                    <input type="password" id="mgr-pass" class="form-input" placeholder="Minimum 8 characters" required
+                        minlength="8">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mgr-phone">Mobile Phone</label>
+                    <input type="tel" id="mgr-phone" class="form-input" placeholder="+91 98765 43210">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-3d btn-3d-secondary"
+                        onclick="closeModal('add-manager-modal')">Cancel</button>
+                    <button type="submit" class="btn-3d btn-3d-primary">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modular Orchestrator Script -->
+    <script src="admin.js"></script>
+</body>
+
+</html>

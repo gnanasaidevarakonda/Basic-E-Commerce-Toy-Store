@@ -38,8 +38,26 @@ class Product
 
         // 3. Filter by Age Group
         if (!empty($filters['age'])) {
-            $baseSql .= " AND p.age_group = :age";
-            $params[':age'] = $filters['age'];
+            $ageQuery = trim($filters['age']);
+            if (is_numeric($ageQuery)) {
+                $numAge = (int) $ageQuery;
+                if ($numAge >= 0 && $numAge <= 2) {
+                    $baseSql .= " AND p.age_group = '0-2'";
+                } elseif ($numAge >= 3 && $numAge <= 5) {
+                    $baseSql .= " AND p.age_group = '3-5'";
+                } elseif ($numAge >= 6 && $numAge <= 8) {
+                    $baseSql .= " AND p.age_group = '6-8'";
+                } elseif ($numAge >= 9 && $numAge <= 12) {
+                    $baseSql .= " AND p.age_group = '9-12'";
+                } elseif ($numAge >= 13 && $numAge <= 17) {
+                    $baseSql .= " AND p.age_group = '13-17'";
+                } elseif ($numAge >= 18) {
+                    $baseSql .= " AND p.age_group = '18+'";
+                } else {
+                    $baseSql .= " AND p.age_group = :age";
+                    $params[':age'] = $ageQuery;
+                }
+            }
         }
 
         // 4. Filter by Minimum Price
@@ -54,12 +72,32 @@ class Product
             $params[':max_price'] = (float) $filters['max_price'];
         }
 
-        // 6. Search in Toy Name or Description
+        // 6. Search in Toy Name or Description or Age Bracket
         if (!empty($filters['q'])) {
-            $baseSql .= " AND (p.name LIKE :search_name OR p.description LIKE :search_desc)";
-            $searchTerm = '%' . trim($filters['q']) . '%';
-            $params[':search_name'] = $searchTerm;
-            $params[':search_desc'] = $searchTerm;
+            $q = trim($filters['q']);
+            $searchTerm = '%' . $q . '%';
+
+            // If Someone searches for an age number (eg: "10"), match toys in that age bracket
+            if (is_numeric($q)) {
+                $numAge = (int) $q;
+                $matchedAge = null;
+                if ($numAge >= 0 && $numAge <= 2) $matchedAge = '0-2';
+                elseif ($numAge >= 3 && $numAge <= 5) $matchedAge = '3-5';
+                elseif ($numAge >= 6 && $numAge <= 8) $matchedAge = '6-8';
+                elseif ($numAge >= 9 && $numAge <= 12) $matchedAge = '9-12';
+                elseif ($numAge >= 13 && $numAge <= 17) $matchedAge = '13-17';
+                elseif ($numAge >= 18) $matchedAge = '18+';
+
+                if ($matchedAge) {
+                    $baseSql .= " AND (p.name LIKE :search_name OR p.description LIKE :search_desc OR p.age_group = :search_age)";
+                    $params[':search_age'] = $matchedAge;
+                } else {
+                    $baseSql .= " AND (p.name LIKE :search_name OR p.description LIKE :search_desc)";
+                }
+
+                $params[':search_name'] = $searchTerm;
+                $params[':search_desc'] = $searchTerm;
+            }
         }
 
         // 7. Filter Featured toys only

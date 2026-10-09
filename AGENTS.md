@@ -83,7 +83,11 @@ basic_e-commerce/
 │   └── php/
 │       └── Dockerfile             # PHP 8.2-FPM with pdo_mysql
 ├── public/
-│   └── index.php                  # Application entry point & route dispatcher
+│   ├── admin/
+│   │   ├── index.html         # Responsive, modular HTML5 Backoffice Dashboard
+│   │   ├── admin.css          # Posh futuristic 3D dark-mode UI with tactile controls
+│   │   └── admin.js           # Multi-currency engine, structured specs parser, auth lifecycle
+│   └── index.php              # Application entry point & route dispatcher
 ├── src/
 │   ├── Controllers/
 │   │   ├── AdminAuthController.php# Backoffice staff login with RBAC role checks
@@ -149,10 +153,11 @@ basic_e-commerce/
 | `DELETE`| `/api/v1/admin/subcategories/{id}`| `[AuthMiddleware, AdminMiddleware]`| Super Admin delete subcategory (safely unlinks toys) |
 | `DELETE`| `/api/v1/admin/products/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin smart delete (hard-delete or soft-delete) |
 | `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
+| `GET` | `/api/v1/admin/managers/{id}` | `[AuthMiddleware, AdminMiddleware]` | Super Admin inspects single manager profile details |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
 | `DELETE`| `/api/v1/admin/managers/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin removes/revokes a manager account |
-| `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Tiered user directory: Managers locked to `role='user'`; Super Admin inspects all (`?role=&status=&q=`) |
-| `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single user profile (Managers restricted to customers; 403 on staff/admins) |
+| `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Dedicated Customer Directory (`role = 'user'`, `?status=&q=`) |
+| `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single customer profile (Managers restricted to customers; 403 on staff/admins) |
 
 ---
 
@@ -193,15 +198,26 @@ basic_e-commerce/
 - `postman/ToyVerse_API.postman_collection.json`: Comprehensive Postman collection with Bearer Auth, dynamic tokens, and operational vs executive folder segregation.
 - `public/index.php`: Layered route registration with strict middleware sequences.
 
-### [CURRENT FOCUS] Phase 5.5: Production Security, Rate Limiting & Admin Panel Frontend
-- [DONE] `RateLimitMiddleware.php`: Token-bucket sliding window rate limiter (dynamic anti-brute-force on auth endpoints, 429 Too Many Requests).
-- [DONE] `SecurityMiddleware.php`: Security headers (X-Frame-Options, X-Content-Type-Options) & bot probe defense.
-- [IN-PROGRESS] `public/admin/index.html`: Responsive, vanilla HTML5/CSS/JS Backoffice Dashboard for Managers and Super Admins.
+### [DONE] Phase 5.5: Production Security, Admin Panel Frontend & Smart Catalog Search
+- `RateLimitMiddleware.php`: Token-bucket sliding window rate limiter (dynamic anti-brute-force on auth endpoints, 429 Too Many Requests).
+- `SecurityMiddleware.php`: Security headers (X-Frame-Options, X-Content-Type-Options) & bot probe defense.
+- Modular Backoffice Frontend (`public/admin/`):
+  - `index.html`: Clean semantic markup, greeting splash screen, live status edit lock, structured e-commerce description forms.
+  - `admin.css`: Posh 3D dark-mode aesthetics, tactile buttons, 3D switches, specs tables, laser loaders.
+  - `admin.js`: Multi-currency engine (₹ INR, $ USD, € EUR), clean logout state reset, structured JSON specs serializer/parser.
+- Smart Age Filter & Bracket Refactor:
+  - Supports both bracket queries (`?age=9-12`) and single numeric ages (`?age=10`, `?age=11` mapped into containing bracket).
+  - Age brackets normalized: `0-2`, `3-5`, `6-8`, `9-12`, `13-17` (teens), `18+` (adults/collectors).
+  - Database schema & seed data migrated from `13-18` to `13-17`.
+- Separation of Concerns for Staff vs Customers:
+  - `/api/v1/admin/managers` & `/api/v1/admin/managers/{id}`: Strictly Super Admin only.
+  - `/api/v1/admin/users`: Dedicated customer directory (`role = 'user'`), eliminating manager query overlap.
+  - Updated Postman collection (`ToyVerse_API.postman_collection.json`) with `Get Single Manager Details`.
 
 ---
 
-### [UPCOMING] Phase 6: Cart & Atomic Checkout
-- In-memory/session or database cart.
+### [CURRENT FOCUS] Phase 6: Cart & Atomic Checkout
+- In-memory/session or database cart (`cart_items`).
 - `Order.php`, `OrderItem.php`, `OrderController.php`.
 - **Atomic MySQL Transactions:** Safe concurrency locking (`SELECT ... FOR UPDATE`) to prevent overselling inventory during simultaneous checkouts.
 
