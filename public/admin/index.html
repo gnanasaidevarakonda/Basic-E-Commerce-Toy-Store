@@ -54,7 +54,6 @@
                     <input type="password" id="login-password" class="form-input" placeholder="••••••••" required
                         autocomplete="current-password">
                 </div>
-                <!-- Issue 1 Fix: Explicitly named "Login" with zero sticky state after logout -->
                 <button type="submit" id="btn-login-submit" class="btn-3d btn-3d-primary"
                     style="width: 100%; margin-top: 24px; padding: 12px; font-size: 0.95rem;">
                     Login
@@ -71,7 +70,7 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 1.8rem;">🧸</span>
                     <span
-                        style="font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; color: #fff;">ToyVerse</span>
+                        style="font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; color: var(--text-primary);">ToyVerse</span>
                 </div>
                 <span class="brand-badge">Backoffice</span>
             </div>
@@ -79,12 +78,20 @@
             <!-- Navigation Tabs -->
             <div class="nav-tabs">
                 <button class="nav-tab-btn active" onclick="switchTab('catalog')">📦 Product Catalog</button>
+                <button id="tab-btn-customers" class="nav-tab-btn" onclick="switchTab('customers')">🛍️
+                    Customers</button>
                 <button id="tab-btn-staff" class="nav-tab-btn" onclick="switchTab('staff')">👥 Team & Staff</button>
             </div>
 
-            <!-- Currency Switcher, User Profile & Logout -->
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <!-- Issue 3: Multi-Currency Dropdown (Default ₹ INR) -->
+            <!-- Right Controls: Theme Toggle, Currency, Online Indicator, Logout -->
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <!-- Theme Toggle Button -->
+                <button id="btn-theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()"
+                    title="Switch Light/Dark Mode">
+                    🌙
+                </button>
+
+                <!-- Multi-Currency Dropdown (Default ₹ INR) -->
                 <div class="currency-pill">
                     <span style="font-size: 0.9rem;">🌐</span>
                     <select id="currency-select" class="currency-select" onchange="changeCurrency(this.value)">
@@ -93,8 +100,17 @@
                         <option value="EUR">EUR (€)</option>
                     </select>
                 </div>
-                <span id="user-display"
-                    style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Staff (ADMIN)</span>
+
+                <!-- Glowing Online Status Ping + Staff Name -->
+                <div style="display: flex; align-items: center;">
+                    <span class="online-indicator" title="Connected & Active">
+                        <span class="ping-wave"></span>
+                        <span class="ping-dot"></span>
+                    </span>
+                    <span id="user-display"
+                        style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Staff (ADMIN)</span>
+                </div>
+
                 <button id="btn-logout" class="btn-3d btn-3d-secondary" style="padding: 7px 14px; font-size: 0.8rem;">🚪
                     Logout</button>
             </div>
@@ -105,36 +121,46 @@
 
             <!-- SECTION A: PRODUCT CATALOG -->
             <div id="section-catalog">
-                <!-- Stats Overview Grid -->
+                <!-- Stats Overview Grid (All 4 cards clickable!) -->
                 <div class="stats-grid">
-                    <div class="glass-panel stat-card" onclick="filterCatalog('all')">
+                    <div class="glass-panel stat-card" onclick="filterCatalog('all')" title="View all toys">
                         <span class="form-label">Total Inventory</span>
                         <span class="stat-value" id="stat-total-products">0</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">All SKU records in catalog</span>
                     </div>
-                    <div class="glass-panel stat-card" onclick="filterCatalog('active')">
+                    <div class="glass-panel stat-card" onclick="filterCatalog('active')" title="View live toys only">
                         <span class="form-label">Live on Store</span>
                         <span class="stat-value" id="stat-active-products" style="color: var(--mint-400);">0</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">Available to shoppers</span>
                     </div>
-                    <div class="glass-panel stat-card" onclick="filterCatalog('low-stock')">
+                    <div class="glass-panel stat-card" onclick="filterCatalog('low-stock')"
+                        title="View low stock items">
                         <span class="form-label">Low Stock Alert</span>
                         <span class="stat-value" id="stat-low-stock" style="color: #f87171;">0</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">Units remaining &le; 5</span>
                     </div>
-                    <div class="glass-panel stat-card">
+                    <div class="glass-panel stat-card" onclick="switchTab('customers')"
+                        title="View registered customer accounts">
                         <span class="form-label">Customer Accounts</span>
                         <span class="stat-value" id="stat-customers" style="color: #38bdf8;">0</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">Registered shoppers</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Registered shoppers &rarr;</span>
                     </div>
                 </div>
 
-                <!-- Action Controls & Live Search Bar -->
+                <!-- Action Controls, Search Bar & Subcategory Filter -->
                 <div
-                    style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; max-width: 600px;">
+                    style="display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div
+                        style="display: flex; align-items: center; gap: 10px; flex: 1; max-width: 750px; flex-wrap: wrap;">
                         <input type="text" id="search-input" class="form-input"
-                            placeholder="🔍 Search toys by name, SKU, brand, age..." style="width: 100%;">
+                            placeholder="🔍 Search toys by name, SKU, brand, age..." style="flex: 1; min-width: 220px;">
+
+                        <!-- Dynamic Subcategory Filter Dropdown -->
+                        <select id="filter-subcategory" class="form-select" onchange="filterBySubcategory(this.value)"
+                            style="max-width: 200px; padding: 11px 14px; font-size: 0.85rem;">
+                            <option value="">All Subcategories</option>
+                        </select>
+
                         <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
                             onclick="filterCatalog('all')">All</button>
                         <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
@@ -142,6 +168,7 @@
                         <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
                             onclick="filterCatalog('low-stock')">⚠️ Low</button>
                     </div>
+
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <button class="btn-3d btn-3d-primary" onclick="openAddToyModal()">
                             ✨ Add Toy
@@ -177,13 +204,47 @@
                 </div>
             </div>
 
-            <!-- SECTION B: TEAM & STAFF DIRECTORY (ADMIN ONLY) -->
+            <!-- SECTION B: CUSTOMER DIRECTORY (STAFF & ADMIN) -->
+            <div id="section-customers" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">Registered Customer
+                            Accounts</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Inspect registered
+                            customer profiles, contact info, and manage account statuses</p>
+                    </div>
+                    <button class="btn-3d btn-3d-secondary" onclick="loadCustomers()">
+                        🔄 Refresh List
+                    </button>
+                </div>
+
+                <div class="glass-panel table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Email Address</th>
+                                <th>Phone</th>
+                                <th>Account Status</th>
+                                <th>Registered Date</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customers-table-body">
+                            <!-- Populated dynamically via admin.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SECTION C: TEAM & STAFF DIRECTORY (ADMIN ONLY) -->
             <div id="section-staff" style="display: none;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
                     <div>
-                        <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff;">Team & Staff Directory</h2>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">Team & Staff
+                            Directory</h2>
                         <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Manage store
-                            managers, staff privileges, and revoke backoffice access</p>
+                            managers, monitor live account activity, and revoke privileges</p>
                     </div>
                     <button class="btn-3d btn-3d-primary" onclick="openModal('add-manager-modal')">
                         ➕ Onboard Manager
@@ -199,7 +260,7 @@
                                 <th>Role</th>
                                 <th>Status</th>
                                 <th>Joined</th>
-                                <th style="text-align: right;">Security</th>
+                                <th style="text-align: right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="managers-table-body">
@@ -281,7 +342,7 @@
                     </div>
                 </div>
 
-                <!-- Structured E-Commerce Description (Issue 2 Solution) -->
+                <!-- Structured E-Commerce Description -->
                 <div class="form-group">
                     <label class="form-label" for="toy-desc-para">1. Overview Narrative (Paragraph)</label>
                     <textarea id="toy-desc-para" class="form-textarea" rows="3"
@@ -350,7 +411,6 @@
                 </div>
             </div>
 
-            <!-- Dynamic Structured Specs and Features Injection -->
             <div id="view-toy-desc-container"></div>
 
             <button type="button" class="btn-3d btn-3d-secondary" style="margin-top: 24px; width: 100%;"
@@ -444,6 +504,84 @@
                     <button type="submit" class="btn-3d btn-3d-primary">Create Account</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL 6: VIEW SINGLE MANAGER DETAILS (ADMIN ONLY) -->
+    <div id="view-manager-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <span id="mgr-detail-badge" class="badge badge-sub">MANAGER</span>
+                <button class="btn-3d btn-3d-secondary" style="padding: 4px 10px; font-size: 0.75rem;"
+                    onclick="closeModal('view-manager-modal')">✕</button>
+            </div>
+            <h3 id="mgr-detail-name" style="margin-bottom: 16px; font-size: 1.4rem; color: #fff;">Manager Name</h3>
+
+            <div
+                style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Status:</span>
+                    <span id="mgr-detail-status"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Email:</span>
+                    <span id="mgr-detail-email" style="font-weight: 600; color: #fff;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Phone:</span>
+                    <span id="mgr-detail-phone" style="color: #fff;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Joined Date:</span>
+                    <span id="mgr-detail-joined" style="font-family: 'JetBrains Mono'; color: var(--mint-300);"></span>
+                </div>
+            </div>
+
+            <button type="button" class="btn-3d btn-3d-secondary" style="width: 100%;"
+                onclick="closeModal('view-manager-modal')">Close Window</button>
+        </div>
+    </div>
+
+    <!-- MODAL 7: VIEW CUSTOMER DETAILS & RBAC TOGGLE (STAFF & ADMIN) -->
+    <div id="view-customer-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <span class="badge badge-cat">CUSTOMER PROFILE</span>
+                <button class="btn-3d btn-3d-secondary" style="padding: 4px 10px; font-size: 0.75rem;"
+                    onclick="closeModal('view-customer-modal')">✕</button>
+            </div>
+            <h3 id="cust-detail-name" style="margin-bottom: 16px; font-size: 1.4rem; color: #fff;">Customer Name</h3>
+
+            <div
+                style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Status:</span>
+                    <span id="cust-detail-status"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Email:</span>
+                    <span id="cust-detail-email" style="font-weight: 600; color: #fff;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Phone:</span>
+                    <span id="cust-detail-phone" style="color: #fff;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Registered On:</span>
+                    <span id="cust-detail-joined" style="font-family: 'JetBrains Mono'; color: var(--mint-300);"></span>
+                </div>
+            </div>
+
+            <!-- Admin Only: Deactivate / Activate Action Button -->
+            <div id="cust-admin-controls" style="display: none; margin-top: 16px;">
+                <button id="btn-toggle-customer-status" class="btn-3d btn-3d-danger" style="width: 100%;"
+                    onclick="toggleCustomerActiveState()">
+                    Deactivate Account
+                </button>
+            </div>
+
+            <button type="button" class="btn-3d btn-3d-secondary" style="margin-top: 12px; width: 100%;"
+                onclick="closeModal('view-customer-modal')">Close Window</button>
         </div>
     </div>
 
