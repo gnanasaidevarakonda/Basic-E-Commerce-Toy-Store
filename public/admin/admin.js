@@ -6,6 +6,7 @@ const API_BASE = '/api/v1';
 let allProducts = [];
 let allCategories = [];
 let allManagers = [];
+let allCustomers = [];
 
 // ============================================================================
 // 1. MULTI-CURRENCY ENGINE (DEFAULT: INR)
@@ -35,6 +36,13 @@ function changeCurrency(newCurr) {
 // 2. INITIALIZATION & AUTHENTICATION
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Restore Theme Safely
+    if (localStorage.getItem('toyverse_theme') === 'light') {
+        document.body.classList.add('light-theme');
+        const themeBtn = document.getElementById('btn-theme-toggle');
+        if (themeBtn) themeBtn.textContent = '☀️';
+    }
+
     const token = localStorage.getItem('toyverse_token');
     if (!token) {
         showLogin();
@@ -164,14 +172,26 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 // TAB SWITCHER
 function switchTab(tab) {
     document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+
+    // Hide all 3 sections first
+    const catalogSec = document.getElementById('section-catalog');
+    const custSec = document.getElementById('section-customers');
+    const staffSec = document.getElementById('section-staff');
+
+    if (catalogSec) catalogSec.style.display = 'none';
+    if (custSec) custSec.style.display = 'none';
+    if (staffSec) staffSec.style.display = 'none';
+
     if (tab === 'catalog') {
-        document.querySelectorAll('.nav-tab-btn')[0].classList.add('active');
-        document.getElementById('section-catalog').style.display = 'block';
-        document.getElementById('section-staff').style.display = 'none';
+        document.querySelectorAll('.nav-tab-btn')[0]?.classList.add('active');
+        if (catalogSec) catalogSec.style.display = 'block';
+    } else if (tab === 'customers') {
+        document.getElementById('tab-btn-customers')?.classList.add('active');
+        if (custSec) custSec.style.display = 'block';
+        loadCustomers(); // Fetch live customers from MySQL
     } else if (tab === 'staff') {
-        document.getElementById('tab-btn-staff').classList.add('active');
-        document.getElementById('section-catalog').style.display = 'none';
-        document.getElementById('section-staff').style.display = 'block';
+        document.getElementById('tab-btn-staff')?.classList.add('active');
+        if (staffSec) staffSec.style.display = 'block';
         loadManagers();
     }
 }
@@ -208,12 +228,23 @@ async function loadCategories() {
             const catSelect = document.getElementById('toy-category');
             const subParentSelect = document.getElementById('sub-parent-category');
 
-            catSelect.innerHTML = '<option value="">Select Category...</option>';
-            subParentSelect.innerHTML = '<option value="">Select Parent Category...</option>';
+            if (catSelect) catSelect.innerHTML = '<option value="">Select Category...</option>';
+            if (subParentSelect) subParentSelect.innerHTML = '<option value="">Select Parent Category...</option>';
 
             allCategories.forEach(c => {
-                catSelect.innerHTML += `<option value="${c.id}" data-slug="${c.slug}">${c.name}</option>`;
-                subParentSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                if (catSelect) catSelect.innerHTML += `<option value="${c.id}" data-slug="${c.slug}">${c.name}</option>`;
+                if (subParentSelect) subParentSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+        }
+
+        // Populate Subcategory Filter Dropdown in Catalog Toolbar
+        const subRes = await fetch(`${API_BASE}/subcategories`);
+        const subJson = await subRes.json();
+        const filterSub = document.getElementById('filter-subcategory');
+        if (filterSub && subJson.success && Array.isArray(subJson.data)) {
+            filterSub.innerHTML = '<option value="">All Subcategories</option>';
+            subJson.data.forEach(s => {
+                filterSub.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)}</option>`;
             });
         }
     } catch (err) {
@@ -332,6 +363,17 @@ function renderProducts(products) {
             </td>
         </tr>
     `}).join('');
+}
+
+function filterBySubcategory(subId) {
+    if (!subId) {
+        renderProducts(allProducts);
+        showToast('Showing all catalog items', 'info');
+        return;
+    }
+    const filtered = allProducts.filter(p => parseInt(p.subcategory_id) === parseInt(subId));
+    renderProducts(filtered);
+    showToast(`Filtered: ${filtered.length} products found`, 'info');
 }
 
 function showLockedAlert() {
@@ -694,6 +736,8 @@ async function loadManagers() {
 
 function renderManagers(managers) {
     const tbody = document.getElementById('managers-table-body');
+    if (!tbody) return;
+
     if (managers.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">No managers registered.</td></tr>`;
         return;
@@ -709,17 +753,54 @@ function renderManagers(managers) {
             <td><span class="badge badge-sub">${m.role.toUpperCase()}</span></td>
             <td>
                 <span style="font-size: 0.8rem; font-weight: 700; color: ${parseInt(m.is_active) === 1 ? 'var(--mint-400)' : '#f87171'};">
-                    ${parseInt(m.is_active) === 1 ? 'Active' : 'Suspended'}
+                    ${parseInt(m.is_active) === 1 ? '● Active' : '○ Suspended'}
                 </span>
             </td>
             <td>${m.created_at ? m.created_at.split(' ')[0] : '-'}</td>
             <td style="text-align: right;">
-                <button class="btn-3d btn-3d-danger" onclick="deleteManager(${m.id}, '${escapeHtml(m.full_name)}')">
-                    Revoke Access
-                </button>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button class="btn-3d btn-3d-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="viewManagerDetails(${m.id})">
+                        Inspect
+                    </button>
+                    <button class="btn-3d btn-3d-danger" style="padding: 6px 12px; font-size: 0.75rem;" onclick="deleteManager(${m.id}, '${escapeHtml(m.full_name)}')">
+                        Revoke
+                    </button>
+                </div>
             </td>
         </tr>
     `).join('');
+}
+
+async function viewManagerDetails(id) {
+    try {
+        const token = localStorage.getItem('toyverse_token');
+        const res = await fetch(`${API_BASE}/admin/managers/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message);
+
+        const m = json.data;
+        document.getElementById('mgr-detail-name').textContent = m.full_name;
+        document.getElementById('mgr-detail-email').textContent = m.email;
+        document.getElementById('mgr-detail-phone').textContent = m.phone || 'Not provided';
+        document.getElementById('mgr-detail-joined').textContent = m.created_at || '-';
+
+        const statusEl = document.getElementById('mgr-detail-status');
+        if (parseInt(m.is_active) === 1) {
+            statusEl.innerHTML = '<span style="color: var(--mint-400); font-weight: 700;">Active Staff</span>';
+        } else {
+            statusEl.innerHTML = '<span style="color: #f87171; font-weight: 700;">Suspended / Revoked</span>';
+        }
+
+        openModal('view-manager-modal');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function toggleCustomerActiveState() {
+    showToast('Customer account status toggle is scheduled for Phase 6', 'info');
 }
 
 document.getElementById('add-manager-form').addEventListener('submit', async (e) => {
@@ -767,6 +848,103 @@ async function deleteManager(id, name) {
     } catch (err) {
         showToast(err.message, 'error');
     }
+}
+
+// ============================================================================
+// 5.5 CUSTOMER DIRECTORY (STAFF & ADMIN)
+// ============================================================================
+async function loadCustomers() {
+    const tbody = document.getElementById('customers-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px;"><div class="cyber-spinner"></div></td></tr>`;
+
+    try {
+        const token = localStorage.getItem('toyverse_token');
+        const res = await fetch(`${API_BASE}/admin/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+        if (json.success) {
+            allCustomers = json.data.users || [];
+            renderCustomers(allCustomers);
+        } else {
+            throw new Error(json.message);
+        }
+    } catch (err) {
+        showToast(err.message || 'Failed to load customers', 'error');
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: #f87171;">⚠️ ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+
+function renderCustomers(customers) {
+    const tbody = document.getElementById('customers-table-body');
+    if (!tbody) return;
+
+    if (customers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">No customer accounts registered yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = customers.map(c => `
+        <tr>
+            <td>
+                <span style="font-weight: 700; color: #fff;">${escapeHtml(c.full_name)}</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">ID #${c.id}</span>
+            </td>
+            <td><span style="color: var(--mint-300);">${escapeHtml(c.email)}</span></td>
+            <td>${escapeHtml(c.phone || 'N/A')}</td>
+            <td>
+                <span style="font-size: 0.8rem; font-weight: 700; color: ${parseInt(c.is_active) === 1 ? 'var(--mint-400)' : '#f87171'};">
+                    ${parseInt(c.is_active) === 1 ? '● Active' : '○ Suspended'}
+                </span>
+            </td>
+            <td>${c.created_at ? c.created_at.split(' ')[0] : '-'}</td>
+            <td style="text-align: right;">
+                <button class="btn-3d btn-3d-secondary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="viewCustomerDetails(${c.id})">
+                    Inspect Profile
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function viewCustomerDetails(id) {
+    try {
+        const token = localStorage.getItem('toyverse_token');
+        const res = await fetch(`${API_BASE}/admin/users/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message);
+
+        const c = json.data;
+        document.getElementById('cust-detail-name').textContent = c.full_name;
+        document.getElementById('cust-detail-email').textContent = c.email;
+        document.getElementById('cust-detail-phone').textContent = c.phone || 'Not provided';
+        document.getElementById('cust-detail-joined').textContent = c.created_at || '-';
+
+        const statusEl = document.getElementById('cust-detail-status');
+        if (parseInt(c.is_active) === 1) {
+            statusEl.innerHTML = '<span style="color: var(--mint-400); font-weight: 700;">Active Account</span>';
+        } else {
+            statusEl.innerHTML = '<span style="color: #f87171; font-weight: 700;">Suspended</span>';
+        }
+
+        openModal('view-customer-modal');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+// ============================================================================
+// 5.6 THEME TOGGLE (DARK / LIGHT MODE)
+// ============================================================================
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    const btn = document.getElementById('btn-theme-toggle');
+    if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+    localStorage.setItem('toyverse_theme', isLight ? 'light' : 'dark');
 }
 
 // ============================================================================

@@ -38,7 +38,7 @@
 ## 2. Infrastructure & Environment Specifications
 
 - **Docker Compose Architecture (3 Containers):**
-  - `toystore_web` (Nginx Alpine): Port `8080:80`. Live volume mount `./:/var/www/html`. FastCGI configured with `fastcgi_param HTTP_AUTHORIZATION $http_authorization;`.
+  - `toystore_web` (Nginx Alpine): Port `8085:80` (migrated from 8080 to permanently avoid Windows WSL2 `wslrelay.exe` IPv6 loopback collisions). Live volume mount `./:/var/www/html`. FastCGI configured with `fastcgi_param HTTP_AUTHORIZATION $http_authorization;`.
   - `toystore_app` (PHP 8.2-FPM): Custom Dockerfile from `docker/php/Dockerfile`. Contains `pdo`, `pdo_mysql`.
   - `toystore_db` (MySQL 8.0): Host port `3307:3306`.
 - **Database Credentials:**
