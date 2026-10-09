@@ -187,11 +187,12 @@ async function loadStats() {
         });
         const json = await res.json();
         if (json.success) {
-            const d = json.data;
-            document.getElementById('stat-total-products').textContent = d.total_products || 0;
-            document.getElementById('stat-active-products').textContent = d.active_products || 0;
-            document.getElementById('stat-low-stock').textContent = d.low_stock_alerts || 0;
-            document.getElementById('stat-customers').textContent = d.total_customers || 0;
+            // FIX: Drill into json.data.metrics (resolves the 0 count bug)
+            const d = json.data.metrics || json.data;
+            document.getElementById('stat-total-products').textContent = d.total_products ?? 0;
+            document.getElementById('stat-active-products').textContent = d.active_products ?? 0;
+            document.getElementById('stat-low-stock').textContent = d.low_stock_alerts ?? 0;
+            document.getElementById('stat-customers').textContent = d.total_customers ?? 0;
         }
     } catch (err) {
         console.error('Stats error:', err);
@@ -549,8 +550,13 @@ async function toggleStatus(id, checkbox) {
         if (!res.ok) throw new Error(json.message);
 
         showToast(`Status updated: ${json.data.is_active === 1 ? 'Live on Store' : 'Inactive (Editable)'}`, 'success');
-        loadProducts(); // Re-render to update the edit button state!
-        loadStats();
+
+        // Update local state and refresh both products table & stats cards immediately
+        const prod = allProducts.find(p => p.id === id);
+        if (prod) prod.is_active = json.data.is_active;
+
+        loadProducts(); // Updates the lock/edit button state
+        loadStats();    // Real-time update for "Live on Store" count!
     } catch (err) {
         checkbox.checked = !checkbox.checked;
         showToast(err.message, 'error');
@@ -770,9 +776,19 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function filterCatalog(type) {
-    if (type === 'low-stock') loadProducts('stock=low');
-    else if (type === 'active') renderProducts(allProducts.filter(p => parseInt(p.is_active) === 1));
-    else loadProducts();
+    // Ensure we are viewing the catalog section
+    switchTab('catalog');
+
+    if (type === 'low-stock') {
+        loadProducts('stock=low');
+        showToast('Filtering: Low Stock items (<= 5 units)', 'info');
+    } else if (type === 'active') {
+        renderProducts(allProducts.filter(p => parseInt(p.is_active) === 1));
+        showToast('Filtering: Live items on storefront', 'info');
+    } else {
+        renderProducts(allProducts);
+        showToast('Showing: All inventory items', 'info');
+    }
 }
 
 function showToast(message, type = 'success') {

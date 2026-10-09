@@ -28,6 +28,10 @@
 6. **Automatic AI & Agent Files Synchronization:**
    - Only ask for permission/guidance regarding application project code (`src/`, `public/`, `database/`) so the user learns by doing.
    - Automatically update and maintain `AGENTS.md` and `.agents/` files as new milestones and architectural changes occur, keeping them 100% in sync for Git and multi-device portability without prompting the user.
+7. **Active Git Workflow Mentorship (Enterprise Discipline):**
+   - Proactively prompt the user when to create a feature branch (`git switch -c feat/...` or `fix/...`).
+   - Prompt atomic commits at key logical milestones once syntax verification (`php -l`) passes.
+   - Prompt clean merging into `main` and switching branches when features are stabilized, helping build intuitive professional Git muscle memory.
 
 ---
 

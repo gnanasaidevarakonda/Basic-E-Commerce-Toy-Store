@@ -7,3 +7,4 @@
 5. **No Frameworks:** Modern vanilla PHP 8.2+ only with zero composer framework bloat.
 6. **Automatic AI & Agent Files Synchronization:** Automatically maintain and update `AGENTS.md` and `.agents/` files with current milestones, endpoints, and architecture state without asking, ensuring seamless Git portability across devices.
 7. **Current Position:** Phase 5.5 complete (Modular Admin Panel frontend, Smart Age resolution 13-17, Super Admin manager isolation). Next focus: Phase 6 (Shopping Cart & Atomic Concurrency Checkout).
+8. **Active Git Workflow Mentorship:** Always prompt the user when to branch (`git switch -c feat/...`), when to make atomic commits, and when to merge into `main` until enterprise Git muscle memory is second nature.
