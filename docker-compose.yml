@@ -4,7 +4,7 @@ services:
   # ==========================================
   web:
     image: nginx:alpine
-    container_name: ${WEB_CONTAINER_NAME:-toystore_web}
+    container_name: ${COMPOSE_PROJECT_NAME:-toystore}_web
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8085}:80"
@@ -21,8 +21,18 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: ${APP_CONTAINER_NAME:-toystore_app}
+    container_name: ${COMPOSE_PROJECT_NAME:-toystore}_app
     restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8085}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-toystore_db}
+      DB_USERNAME: ${DB_USERNAME:-toystore_user}
+      DB_PASSWORD: ${DB_PASSWORD:-toystore_password}
+      JWT_SECRET: ${JWT_SECRET:-toystore_super_secret_jwt_key!}
     volumes:
       - ./:/var/www/html
     depends_on:
@@ -33,13 +43,13 @@ services:
   # ==========================================
   db:
     image: mysql:8.0
-    container_name: ${DB_CONTAINER_NAME:-toystore_db}
+    container_name: ${COMPOSE_PROJECT_NAME:-toystore}_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: toystore_db
-      MYSQL_USER: toystore_user
-      MYSQL_PASSWORD: toystore_password
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: ${DB_DATABASE:-toystore_db}
+      MYSQL_USER: ${DB_USERNAME:-toystore_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-toystore_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
     ports:
       - "${DB_PORT:-3307}:3306"
     volumes:
