@@ -1,17 +1,15 @@
-#version: '3.8'
-
 services:
   # ==========================================
   # Service 1: Web Server (Nginx)
   # ==========================================
   web:
     image: nginx:alpine
-    container_name: toystore_web
+    container_name: ${WEB_CONTAINER_NAME:-toystore_web}
     restart: unless-stopped
     ports:
-      - "8085:80" # Maps port 8080 on your Windows laptop to port 80 inside Nginx
+      - "${WEB_PORT:-8085}:80"
     volumes:
-      - ./:/var/www/html # Live sync: changes on your laptop appear instantly in Nginx
+      - ./:/var/www/html
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
@@ -23,10 +21,10 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: toystore_app
+    container_name: ${APP_CONTAINER_NAME:-toystore_app}
     restart: unless-stopped
     volumes:
-      - ./:/var/www/html # Live sync: edits to your PHP files are immediately active
+      - ./:/var/www/html
     depends_on:
       - db
 
@@ -35,7 +33,7 @@ services:
   # ==========================================
   db:
     image: mysql:8.0
-    container_name: toystore_db
+    container_name: ${DB_CONTAINER_NAME:-toystore_db}
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: toystore_db
@@ -43,9 +41,9 @@ services:
       MYSQL_PASSWORD: toystore_password
       MYSQL_ROOT_PASSWORD: root_password
     ports:
-      - "3307:3306" # Mapped to 3307 on your laptop so it doesn't clash with local MySQL
+      - "${DB_PORT:-3307}:3306"
     volumes:
-      - db_data:/var/lib/mysql # Persistent storage: data is saved even if container stops
+      - db_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
 
 volumes:
