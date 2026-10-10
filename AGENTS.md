@@ -37,20 +37,31 @@
 
 ## 2. Infrastructure & Environment Specifications
 
-- **Docker Compose Architecture (3 Containers):**
-  - `toystore_web` (Nginx Alpine): Port `8085:80` (migrated from 8080 to permanently avoid Windows WSL2 `wslrelay.exe` IPv6 loopback collisions). Live volume mount `./:/var/www/html`. FastCGI configured with `fastcgi_param HTTP_AUTHORIZATION $http_authorization;`.
-  - `toystore_app` (PHP 8.2-FPM): Custom Dockerfile from `docker/php/Dockerfile`. Contains `pdo`, `pdo_mysql`.
-  - `toystore_db` (MySQL 8.0): Host port `3307:3306`.
-- **Database Credentials:**
-  - DB Name: `toystore_db`
-  - User: `toystore_user`
-  - Password: `toystore_password`
-  - Root Password: `root_password`
+- **Dual-Environment Architecture (Simultaneous DEV & STAGING):**
+  - **DEV (Windows Host / `/mnt/c/`):**
+    - `toystore_dev_web` (Nginx Alpine): Port `8085:80` (FastCGI configured with `fastcgi_param HTTP_AUTHORIZATION $http_authorization;`, `absolute_redirect off;` to preserve host port 8085 on directory redirects).
+    - `toystore_dev_app` (PHP 8.2-FPM): Custom Dockerfile from `docker/php/Dockerfile` (`pdo`, `pdo_mysql`).
+    - `toystore_dev_db` (MySQL 8.0): Host port `3307:3306`.
+    - Profile: `COMPOSE_PROJECT_NAME=toystore_dev`, `HOST_WEB_PORT=8085`, `HOST_DB_PORT=3307`.
+  - **STAGING (Ubuntu WSL Native ext4 `~/staging/`):**
+    - `toystore_staging_web` (Nginx Alpine): Port `8086:80`.
+    - `toystore_staging_app` (PHP 8.2-FPM).
+    - `toystore_staging_db` (MySQL 8.0): Host port `8088:3306`.
+    - Profile: `COMPOSE_PROJECT_NAME=toystore_staging`, `HOST_WEB_PORT=8086`, `HOST_DB_PORT=8088`.
+  - **Universal Docker Compose CLI:** Both environments run identical commands without `-p` flags (`docker compose up -d`, `down`, `up -d --build`, `down -v`).
+- **Environment File Architecture:**
+  - `.env.example`: Git-tracked minimalist blueprint with clean placeholders (`<placeholder>`), zero secrets, and zero pre-filled values.
+  - `.env.development`: Local-only (gitignored) active configuration for Windows Dev.
+  - `.env.staging`: Local-only (gitignored) active configuration for Ubuntu Staging.
+  - `.env`: Active environment profile switcher (`cp .env.development .env` or Linux symlink `ln -sf .env.staging .env`).
+- **Database Credentials (Internal):**
+  - DB Host: `db`, DB Name: `toystore_db`, User: `toystore_user`, Password: `toystore_password`, Root Password: `root_password`.
 - **Automated Database Auto-Loader:**
   - Mounted via `docker-compose.yml`: `./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro`.
-  - When cloned on ANY new computer, running `docker compose up -d --build` automatically creates all tables and seeds all data with **zero manual SQL commands**.
-- **Tunneling & Testing:**
-  - WSL configured with SSH tunnel alias: `ssh -o StrictHostKeyChecking=accept-new -R 80:localhost:8080 nokey@localhost.run`.
+  - Bootstraps all schemas and seed data automatically on `docker compose up -d --build`.
+- **Tunneling & Staging Exposure:**
+  - High-reliability HTTP/2 Cloudflare Tunnel: `cloudflared tunnel --protocol http2 --edge-ip-version auto --url http://localhost:8086`.
+  - Kernel UDP buffer calibration: `net.core.rmem_max=2500000`, `net.core.wmem_max=2500000` (eliminates QUIC datagram drop errors).
 
 ---
 
@@ -217,6 +228,11 @@ basic_e-commerce/
   - `/api/v1/admin/managers` & `/api/v1/admin/managers/{id}`: Strictly Super Admin only.
   - `/api/v1/admin/users`: Dedicated customer directory (`role = 'user'`), eliminating manager query overlap.
   - Updated Postman collection (`ToyVerse_API.postman_collection.json`) with `Get Single Manager Details`.
+- Dual-Environment Architecture & Web Server Fixes:
+  - Nginx directory canonical redirect fix (`absolute_redirect off;` in `docker/nginx/default.conf` preventing port-stripping on `/admin`).
+  - Isolated multi-environment Docker orchestration: Windows DEV (`HOST_WEB_PORT=8085`, `HOST_DB_PORT=3307`, `toystore_dev`) and Ubuntu WSL STAGING (`HOST_WEB_PORT=8086`, `HOST_DB_PORT=8088`, `toystore_staging`).
+  - Safe zero-leak environment configuration: Git-tracked `.env.example` blueprint with placeholders, gitignored `.env.development` and `.env.staging`, active `.env` switcher.
+  - Tunneling calibration: High-performance HTTP/2 Cloudflare Tunnel with Linux kernel UDP buffer optimization (`net.core.rmem_max=2500000`).
 
 ---
 
