@@ -862,3 +862,60 @@ body.light-theme .nav-tab-btn.active {
     color: #15803d;
     border: 1px solid #22c55e;
 }
+
+/* ==============================================================================
+   LIVE STAFF INDICATOR & LIGHT THEME CONTRAST FIXES
+   ============================================================================== */
+
+/* Glowing Live Dot next to Manager Names */
+.live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.live-dot.live-online {
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulse-glow 2s infinite;
+}
+
+.live-dot.live-offline {
+    background-color: #ef4444;
+    opacity: 0.45;
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+/* Light Theme High-Contrast Font Fixes (Prevents White Text Blending) */
+body.light-theme {
+    --mint-400: #059669;
+    --mint-300: #047857;
+}
+
+body.light-theme td span[style*="#fff"],
+body.light-theme td span[style*="rgb(255, 255, 255)"],
+body.light-theme .toy-cell span[style*="#fff"],
+body.light-theme h2,
+body.light-theme h3 {
+    color: #052e16 !important;
+}
+
+body.light-theme td {
+    color: #0f172a;
+}

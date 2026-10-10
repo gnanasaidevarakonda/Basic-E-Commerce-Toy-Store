@@ -71,7 +71,7 @@ class AdminController
 
         // Optional filter: view low stock items only (?stock=low)
         if (($params['stock'] ?? '') === 'low') {
-            $sql .= " WHERE p.stock_quantity <= 5";
+            $sql .= " WHERE p.stock_quantity <= 5 AND p.is_active =1";
         }
 
         $sql .= " ORDER BY p.id DESC";

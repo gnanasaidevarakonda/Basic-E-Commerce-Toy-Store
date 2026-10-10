@@ -156,6 +156,7 @@ basic_e-commerce/
 | `GET` | `/api/v1/auth/profile` | `[AuthMiddleware]` | View authenticated user profile (Requires Bearer token) |
 | `GET` | `/api/v1/auth/user` | `[AuthMiddleware]` | Alias for profile endpoint |
 | `POST`| `/api/v1/admin/auth/login` | Public | Staff backoffice login (Managers & Super Admins) |
+| `POST`| `/api/v1/admin/auth/logout` | `[AuthMiddleware]` | Staff backoffice logout (sets `is_online = 0`) |
 | `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats: products, active, low-stock, categories, customers & managers |
 | `GET` | `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Full inventory inspection (`?stock=low`) |
 | `GET` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single product complete details (even if inactive) |
@@ -167,12 +168,13 @@ basic_e-commerce/
 | `POST`| `/api/v1/admin/subcategories`| `[AuthMiddleware, StaffMiddleware]` | Staff create new subcategory under a category |
 | `DELETE`| `/api/v1/admin/subcategories/{id}`| `[AuthMiddleware, AdminMiddleware]`| Super Admin delete subcategory (safely unlinks toys) |
 | `DELETE`| `/api/v1/admin/products/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin smart delete (hard-delete or soft-delete) |
-| `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
+| `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers (with `is_online` status) |
 | `GET` | `/api/v1/admin/managers/{id}` | `[AuthMiddleware, AdminMiddleware]` | Super Admin inspects single manager profile details |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
 | `DELETE`| `/api/v1/admin/managers/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin removes/revokes a manager account |
 | `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Dedicated Customer Directory (`role = 'user'`, `?status=&q=`) |
 | `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single customer profile (Managers restricted to customers; 403 on staff/admins) |
+| `PATCH`| `/api/v1/admin/users/{id}/status`| `[AuthMiddleware, StaffMiddleware]` | Staff 1-click toggle between Active and Suspended for customer accounts |
 
 ---
 

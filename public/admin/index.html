@@ -147,26 +147,12 @@
                     </div>
                 </div>
 
-                <!-- Action Controls, Search Bar & Subcategory Filter -->
+                <!-- Action Controls & Unified Search Bar -->
                 <div
                     style="display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <div
-                        style="display: flex; align-items: center; gap: 10px; flex: 1; max-width: 750px; flex-wrap: wrap;">
+                    <div style="flex: 1; max-width: 500px;">
                         <input type="text" id="search-input" class="form-input"
-                            placeholder="🔍 Search toys by name, SKU, brand, age..." style="flex: 1; min-width: 220px;">
-
-                        <!-- Dynamic Subcategory Filter Dropdown -->
-                        <select id="filter-subcategory" class="form-select" onchange="filterBySubcategory(this.value)"
-                            style="max-width: 200px; padding: 11px 14px; font-size: 0.85rem;">
-                            <option value="">All Subcategories</option>
-                        </select>
-
-                        <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
-                            onclick="filterCatalog('all')">All</button>
-                        <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
-                            onclick="filterCatalog('active')">Live</button>
-                        <button class="btn-3d btn-3d-secondary" style="padding: 10px 14px; white-space: nowrap;"
-                            onclick="filterCatalog('low-stock')">⚠️ Low</button>
+                            placeholder="🔍 Search toys by name, SKU, brand, subcategory, age..." style="width: 100%;">
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 10px;">

@@ -50,16 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
         showDashboard();
     }
 
-    // Live search filter (with smart numeric age bracket matching)
+    // Live search filter (includes subcategory, category, name, SKU, brand & age)
     document.getElementById('search-input')?.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase().trim();
         const numTerm = parseInt(term, 10);
         const isNumeric = !isNaN(numTerm) && String(numTerm) === term;
 
         const filtered = allProducts.filter(p => {
-            const matchesText = p.name.toLowerCase().includes(term) ||
-                p.sku.toLowerCase().includes(term) ||
-                (p.brand && p.brand.toLowerCase().includes(term));
+            const matchesText = (p.name && p.name.toLowerCase().includes(term)) ||
+                (p.sku && p.sku.toLowerCase().includes(term)) ||
+                (p.brand && p.brand.toLowerCase().includes(term)) ||
+                (p.category_name && p.category_name.toLowerCase().includes(term)) ||
+                (p.subcategory_name && p.subcategory_name.toLowerCase().includes(term));
 
             let matchesAge = false;
             if (p.age_group) {
@@ -747,13 +749,14 @@ function renderManagers(managers) {
         <tr>
             <td>
                 <span style="font-weight: 700; color: #fff;">${escapeHtml(m.full_name)}</span>
-                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">${m.email}</span>
+                <span class="live-dot ${parseInt(m.is_active) === 1 ? 'live-online' : 'live-offline'}" title="${parseInt(m.is_active) === 1 ? 'Live Staff' : 'Offline / Suspended'}"></span>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">ID #${m.id}</span>
             </td>
-            <td>${m.phone || 'N/A'}</td>
+            <td><span style="color: var(--mint-300);">${escapeHtml(m.email)}</span></td>
             <td><span class="badge badge-sub">${m.role.toUpperCase()}</span></td>
             <td>
                 <span style="font-size: 0.8rem; font-weight: 700; color: ${parseInt(m.is_active) === 1 ? 'var(--mint-400)' : '#f87171'};">
-                    ${parseInt(m.is_active) === 1 ? '● Active' : '○ Suspended'}
+                    ${parseInt(m.is_active) === 1 ? 'Active' : 'Suspended'}
                 </span>
             </td>
             <td>${m.created_at ? m.created_at.split(' ')[0] : '-'}</td>
@@ -896,7 +899,7 @@ function renderCustomers(customers) {
             <td>${escapeHtml(c.phone || 'N/A')}</td>
             <td>
                 <span style="font-size: 0.8rem; font-weight: 700; color: ${parseInt(c.is_active) === 1 ? 'var(--mint-400)' : '#f87171'};">
-                    ${parseInt(c.is_active) === 1 ? '● Active' : '○ Suspended'}
+                    ${parseInt(c.is_active) === 1 ? 'Active' : 'Suspended'}
                 </span>
             </td>
             <td>${c.created_at ? c.created_at.split(' ')[0] : '-'}</td>
@@ -954,18 +957,14 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function filterCatalog(type) {
-    // Ensure we are viewing the catalog section
     switchTab('catalog');
 
     if (type === 'low-stock') {
-        loadProducts('stock=low');
-        showToast('Filtering: Low Stock items (<= 5 units)', 'info');
+        renderProducts(allProducts.filter(p => parseInt(p.stock_quantity) <= 5 && parseInt(p.is_active) === 1));
     } else if (type === 'active') {
         renderProducts(allProducts.filter(p => parseInt(p.is_active) === 1));
-        showToast('Filtering: Live items on storefront', 'info');
     } else {
         renderProducts(allProducts);
-        showToast('Showing: All inventory items', 'info');
     }
 }
 
@@ -973,7 +972,8 @@ function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span><span>${message}</span>`;
+    const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'info' ? 'ℹ️' : '🔔'));
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
     container.appendChild(toast);
 
     setTimeout(() => toast.classList.add('show'), 10);
