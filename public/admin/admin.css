@@ -919,3 +919,196 @@ body.light-theme h3 {
 body.light-theme td {
     color: #0f172a;
 }
+
+/* ==============================================================================
+   LIVE STAFF INDICATOR, TOGGLE SWITCH & LIGHT THEME CONTRAST OVERHAUL
+   ============================================================================== */
+
+/* Real-Time Live Status Dot next to Staff Names */
+.live-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.live-dot.live-online {
+    background-color: #10b981;
+    box-shadow: 0 0 10px #10b981;
+    animation: pulse-glow 2s infinite;
+}
+
+.live-dot.live-offline {
+    background-color: #ef4444;
+    opacity: 0.45;
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+/* 3D Customer Status Toggle Switch */
+.switch-3d {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+.switch-3d input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider-3d {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ef4444;
+    transition: 0.3s;
+    border-radius: 20px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.slider-3d:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.switch-3d input:checked+.slider-3d {
+    background-color: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.switch-3d input:checked+.slider-3d:before {
+    transform: translateX(18px);
+}
+
+/* Modal Title & Value Defaults */
+.modal-detail-title {
+    color: #ffffff;
+}
+
+.modal-detail-val {
+    color: #ffffff;
+}
+
+#greeting-user {
+    color: #ffffff;
+}
+
+/* ==============================================================================
+   LIGHT THEME CONTRAST ADJUSTMENTS
+   ============================================================================== */
+body.light-theme {
+    --mint-400: #059669;
+    --mint-300: #047857;
+}
+
+/* Category & Age Badges Contrast in Light Theme */
+body.light-theme .badge-cat {
+    background: rgba(5, 150, 105, 0.12) !important;
+    color: #065f46 !important;
+    border-color: rgba(5, 150, 105, 0.35) !important;
+    font-weight: 700;
+}
+
+body.light-theme .badge-sub {
+    background: rgba(109, 40, 217, 0.1) !important;
+    color: #5b21b6 !important;
+    border-color: rgba(109, 40, 217, 0.3) !important;
+    font-weight: 700;
+}
+
+body.light-theme .badge-age {
+    background: rgba(217, 119, 6, 0.12) !important;
+    color: #92400e !important;
+    border-color: rgba(217, 119, 6, 0.35) !important;
+    font-weight: 700;
+}
+
+/* Modal Headers, Email & Phone High Contrast */
+body.light-theme .modal-detail-title,
+body.light-theme #cust-detail-name,
+body.light-theme #mgr-detail-name,
+body.light-theme .modal-card h3 {
+    color: #0f172a !important;
+}
+
+body.light-theme .modal-detail-val,
+body.light-theme #cust-detail-email,
+body.light-theme #cust-detail-phone,
+body.light-theme #mgr-detail-email,
+body.light-theme #mgr-detail-phone {
+    color: #1e293b !important;
+}
+
+body.light-theme .modal-info-box {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+/* Table Text & General Typography in Light Theme */
+body.light-theme td span[style*="#fff"],
+body.light-theme td span[style*="rgb(255, 255, 255)"],
+body.light-theme .toy-cell span[style*="#fff"],
+body.light-theme h2,
+body.light-theme h3 {
+    color: #0f172a !important;
+}
+
+body.light-theme td {
+    color: #0f172a;
+}
+
+/* Greeting Splash Screen Light Mode Overhaul */
+body.light-theme #greeting-splash {
+    background: radial-gradient(circle at center, rgba(240, 253, 244, 0.96) 0%, rgba(220, 252, 231, 0.92) 100%) !important;
+}
+
+body.light-theme .greeting-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12), 0 0 30px rgba(16, 185, 129, 0.15) !important;
+}
+
+body.light-theme #greeting-user {
+    color: #064e3b !important;
+}
+
+body.light-theme .greeting-card p {
+    color: #059669 !important;
+}
+
+body.light-theme .laser-loader {
+    background: #e2e8f0 !important;
+}
+
+body.light-theme .laser-bar {
+    background: linear-gradient(90deg, #10b981, #059669) !important;
+}

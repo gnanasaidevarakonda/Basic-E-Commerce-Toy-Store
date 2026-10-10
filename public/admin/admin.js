@@ -103,10 +103,17 @@ function showDashboard() {
     const user = JSON.parse(localStorage.getItem('toyverse_user') || '{}');
     document.getElementById('user-display').textContent = `${user.full_name || 'Staff'} (${(user.role || 'staff').toUpperCase()})`;
 
-    // Hide staff management tab if caller is not an admin
+    // Reset view to catalog tab on every login
+    switchTab('catalog');
+
+    // Hide staff management tab and section if caller is not an admin
+    const staffTab = document.getElementById('tab-btn-staff');
+    const staffSection = document.getElementById('section-staff');
     if (user.role !== 'admin') {
-        const tab = document.getElementById('tab-btn-staff');
-        if (tab) tab.style.display = 'none';
+        if (staffTab) staffTab.style.display = 'none';
+        if (staffSection) staffSection.style.display = 'none';
+    } else {
+        if (staffTab) staffTab.style.display = 'inline-block';
     }
 
     loadStats();
@@ -163,10 +170,22 @@ function triggerGreeting(user) {
     }, 1300);
 }
 
-// LOGOUT ACTION (WITH BUTTON RESET)
-document.getElementById('btn-logout').addEventListener('click', () => {
+// LOGOUT ACTION (CALLS BACKEND TO SET IS_ONLINE = 0)
+document.getElementById('btn-logout').addEventListener('click', async () => {
+    const token = localStorage.getItem('toyverse_token');
+    if (token) {
+        try {
+            await fetch(`${API_BASE}/admin/auth/logout`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        } catch (e) {
+            console.error('Logout error:', e);
+        }
+    }
     localStorage.removeItem('toyverse_token');
     localStorage.removeItem('toyverse_user');
+    switchTab('catalog');
     showToast('Logged out cleanly', 'success');
     showLogin();
 });
@@ -741,15 +760,17 @@ function renderManagers(managers) {
     if (!tbody) return;
 
     if (managers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">No managers registered.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">No managers registered yet.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = managers.map(m => `
+    tbody.innerHTML = managers.map(m => {
+        const isOnline = parseInt(m.is_online) === 1;
+        return `
         <tr>
             <td>
                 <span style="font-weight: 700; color: #fff;">${escapeHtml(m.full_name)}</span>
-                <span class="live-dot ${parseInt(m.is_active) === 1 ? 'live-online' : 'live-offline'}" title="${parseInt(m.is_active) === 1 ? 'Live Staff' : 'Offline / Suspended'}"></span>
+                <span class="live-dot ${isOnline ? 'live-online' : 'live-offline'}" title="${isOnline ? 'Online (Logged In)' : 'Offline'}"></span>
                 <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">ID #${m.id}</span>
             </td>
             <td><span style="color: var(--mint-300);">${escapeHtml(m.email)}</span></td>
@@ -762,16 +783,17 @@ function renderManagers(managers) {
             <td>${m.created_at ? m.created_at.split(' ')[0] : '-'}</td>
             <td style="text-align: right;">
                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                    <button class="btn-3d btn-3d-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="viewManagerDetails(${m.id})">
+                    <button class="btn-3d btn-3d-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="viewManagerDetails(${m.id})">
                         Inspect
                     </button>
-                    <button class="btn-3d btn-3d-danger" style="padding: 6px 12px; font-size: 0.75rem;" onclick="deleteManager(${m.id}, '${escapeHtml(m.full_name)}')">
+                    <button class="btn-3d btn-3d-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteManagerPrompt(${m.id}, '${escapeHtml(m.full_name)}')">
                         Revoke
                     </button>
                 </div>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 async function viewManagerDetails(id) {
@@ -898,20 +920,50 @@ function renderCustomers(customers) {
             <td><span style="color: var(--mint-300);">${escapeHtml(c.email)}</span></td>
             <td>${escapeHtml(c.phone || 'N/A')}</td>
             <td>
-                <span style="font-size: 0.8rem; font-weight: 700; color: ${parseInt(c.is_active) === 1 ? 'var(--mint-400)' : '#f87171'};">
-                    ${parseInt(c.is_active) === 1 ? 'Active' : 'Suspended'}
+                <span id="cust-status-${c.id}" style="font-size: 0.8rem; font-weight: 700; color: ${parseInt(c.is_active) === 1 ? 'var(--mint-400)' : '#f87171'};">
+                    ${parseInt(c.is_active) === 1 ? 'Active' : 'Deactivated'}
                 </span>
             </td>
             <td>${c.created_at ? c.created_at.split(' ')[0] : '-'}</td>
             <td style="text-align: right;">
-                <button class="btn-3d btn-3d-secondary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="viewCustomerDetails(${c.id})">
-                    Inspect Profile
-                </button>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
+                    <label class="switch-3d" title="Toggle active status">
+                        <input type="checkbox" ${parseInt(c.is_active) === 1 ? 'checked' : ''} onchange="toggleCustomerStatus(${c.id}, this)">
+                        <span class="slider-3d"></span>
+                    </label>
+                    <button class="btn-3d btn-3d-secondary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="viewCustomerDetails(${c.id})">
+                        Inspect Profile
+                    </button>
+                </div>
             </td>
         </tr>
     `).join('');
 }
 
+async function toggleCustomerStatus(id, checkbox) {
+    const token = localStorage.getItem('toyverse_token');
+    try {
+        const res = await fetch(`${API_BASE}/admin/users/${id}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Failed to toggle status');
+
+        const newStatus = parseInt(json.data.is_active) === 1;
+        const statusSpan = document.getElementById(`cust-status-${id}`);
+        if (statusSpan) {
+            statusSpan.style.color = newStatus ? 'var(--mint-400)' : '#f87171';
+            statusSpan.textContent = newStatus ? 'Active' : 'Deactivated';
+        }
+        showToast(json.message, 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+        checkbox.checked = !checkbox.checked; // Revert switch UI on failure
+    }
+}
 async function viewCustomerDetails(id) {
     try {
         const token = localStorage.getItem('toyverse_token');
