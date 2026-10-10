@@ -246,6 +246,24 @@
                         },
                         "url": "{{base_url}}/api/v1/admin/auth/login"
                     }
+                },
+                {
+                    "name": "Staff / Super Admin Logout",
+                    "request": {
+                        "description": "Terminates backoffice staff session and sets is_online = 0 in database. Requires Bearer auth token.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "url": "{{base_url}}/api/v1/admin/auth/logout"
+                    }
                 }
             ]
         },
@@ -519,6 +537,24 @@
                         },
                         "method": "GET",
                         "url": "{{base_url}}/api/v1/admin/users/2"
+                    }
+                },
+                {
+                    "name": "Toggle Customer Status (Active / Suspended)",
+                    "request": {
+                        "description": "1-click toggle between Active and Suspended for a customer account. Accessible by both managers and super admins. Blocks modifying staff/admin accounts.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "url": "{{base_url}}/api/v1/admin/users/2/status"
                     }
                 }
             ]

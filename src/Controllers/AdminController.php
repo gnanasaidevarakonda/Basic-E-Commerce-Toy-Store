@@ -419,7 +419,7 @@ class AdminController
         }
         $db = Database::getConnection();
 
-        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, created_at 
+        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, is_online, created_at 
                             FROM users 
                             WHERE role = 'manager' 
                             ORDER BY id DESC");
@@ -445,7 +445,7 @@ class AdminController
         $managerId = (int) $id;
         $db = Database::getConnection();
 
-        $stmt = $db->prepare("SELECT id, full_name, email, phone, role, is_active, created_at, updated_at 
+        $stmt = $db->prepare("SELECT id, full_name, email, phone, role, is_active, is_online, created_at, updated_at 
         FROM users WHERE id=:id AND role = 'manager' LIMIT 1");
         $stmt->execute([':id' => $managerId]);
         $manager = $stmt->fetch();
@@ -619,6 +619,58 @@ class AdminController
         }
 
         Response::success($user, "User details retrieved successfully.");
+    }
+
+    /**
+     * PATCH /api/v1/admin/users/{id}/status
+     * Staff & Super Admin: 1-click toggle between Active (1) and Deactivated (0) for customer accounts.
+     * 
+     * Security & RBAC Guards:
+     * 1. Target Account Guard: Only customers (role = 'user') can be toggled through this endpoint.
+     *    Staff/managers or admins cannot be deactivated here.
+     * 2. Self-Protection: A user cannot deactivate their own account.
+     */
+    public function toggleUserStatus(string $id): void
+    {
+        $userId = (int) $id;
+        $db = Database::getConnection();
+
+        // 1. Fetch target user
+        $stmt = $db->prepare("SELECT id, full_name, role, is_active FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $userId]);
+        $targetUser = $stmt->fetch();
+
+        if (!$targetUser) {
+            Response::error("Customer with ID {$userId} not found.", 404);
+        }
+
+        // 2. Strict Privilege Guard: Only allow toggling customer accounts
+        if ($targetUser['role'] !== 'user') {
+            Response::error("Forbidden: Only customer accounts can be deactivated via this endpoint.", 403);
+        }
+
+        // 3. Prevent self-deactivation
+        $callerId = AuthMiddleware::id();
+        if ($callerId && $callerId === $userId) {
+            Response::error("Forbidden: You cannot modify the status of your own account.", 403);
+        }
+
+        // 4. Invert is_active status (1 -> 0, or 0 -> 1)
+        $newStatus = ((int) $targetUser['is_active'] === 1) ? 0 : 1;
+
+        $updateStmt = $db->prepare("UPDATE users SET is_active = :status WHERE id = :id");
+        $updateStmt->execute([
+            ':status' => $newStatus,
+            ':id'     => $userId
+        ]);
+
+        $statusLabel = ($newStatus === 1) ? 'activated' : 'deactivated';
+
+        Response::success([
+            'user_id'   => $userId,
+            'full_name' => $targetUser['full_name'],
+            'is_active' => $newStatus
+        ], "Customer account has been {$statusLabel} successfully.");
     }
 
     /**

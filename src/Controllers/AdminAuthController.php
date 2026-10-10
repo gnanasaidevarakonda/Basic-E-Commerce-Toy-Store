@@ -2,8 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Middlewares\AuthMiddleware;
 use App\Models\User;
 use App\Services\JWTService;
 
@@ -125,6 +127,11 @@ class AdminAuthController
             Response::error('Forbidden: Access denied. Management previlages required.', 403);
         }
 
+        // Presence Tracking: Mark staff user online in database.
+        $db = Database::getConnection();
+        $updateStmt = $db->prepare("UPDATE users SET is_online = 1 WHERE id =:id");
+        $updateStmt->execute([':id' => (int) $user['id']]);
+
         // 6. Never expose password_hash in response
         unset($user['password_hash']);
 
@@ -140,5 +147,23 @@ class AdminAuthController
             'user' => $user,
             'token' => $token
         ], ucfirst($user['role']) . ' login successful.');
+    }
+
+    /**
+     * POST /api/v1/admin/auth/logout
+     * GUarded by authmiddleware: requires valid Bearer token.
+     * sets is_online = 0 in database for the authentication staff user.
+     */
+    public function logout(): void
+    {
+        $user = AuthMiddleware::user();
+
+        if ($user && isset($user['id'])) {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("UPDATE users SET is_online = 0 WHERE id = :id");
+            $stmt->execute(['id' => (int) $user['id']]);
+        }
+
+        Response::success(null, 'Staff logged out successfully.');
     }
 }
