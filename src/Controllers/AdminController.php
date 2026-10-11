@@ -536,6 +536,56 @@ class AdminController
         ], "Manager '{$user['full_name']}' has been removed from staff.");
     }
     /**
+     * PATCH /api/v1/admin/managers/{id}/status
+     * SUPER ADMIN ONLY: Dynamic Grant / Revoke access toggle for managers.
+     */
+    public function toggleManagerStatus(string $id): void
+    {
+        $managerId = (int) $id;
+        $db        = Database::getConnection();
+
+        // 1. Fetch target user
+        $stmt = $db->prepare("SELECT id, full_name, role, is_active, is_online FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $managerId]);
+        $manager = $stmt->fetch();
+
+        if (!$manager) {
+            Response::error("Manager with ID {$managerId} not found.", 404);
+        }
+
+        // 2. Privilege Guard: Only allow toggling manager accounts
+        if ($manager['role'] !== 'manager') {
+            Response::error("Forbidden: Only manager accounts can be toggled via this endpoint.", 403);
+        }
+
+        // 3. Prevent self-modification
+        $callerId = AuthMiddleware::id();
+        if ($callerId && (int) $callerId === $managerId) {
+            Response::error("Forbidden: You cannot modify your own account.", 403);
+        }
+
+        // 4. Invert is_active status (1 -> 0, or 0 -> 1)
+        $newActive = ((int) $manager['is_active'] === 1) ? 0 : 1;
+        // When revoking access (0), immediately force is_online to 0
+        $newOnline = ($newActive === 0) ? 0 : (int) $manager['is_online'];
+
+        // Each parameter is strictly unique (:active, :online, :id) to comply with native PDO
+        $updateStmt = $db->prepare("UPDATE users SET is_active = :active, is_online = :online WHERE id = :id");
+        $updateStmt->execute([
+            ':active' => $newActive,
+            ':online' => $newOnline,
+            ':id'     => $managerId
+        ]);
+
+        $actionText = ($newActive === 1) ? 'granted' : 'revoked';
+
+        Response::success([
+            'manager_id' => $managerId,
+            'full_name'  => $manager['full_name'],
+            'is_active'  => $newActive
+        ], "Manager '{$manager['full_name']}' access has been {$actionText}.");
+    }
+    /**
      * GET /api/v1/admin/users
      * Staff & Admin: INspect all registered uers & customers with filters.
      */
@@ -791,5 +841,119 @@ class AdminController
             'deleted_id' => $subId,
             'deleted_name' => $sub['name']
         ], 'Subcategory deleted successfully.');
+    }
+
+    /**
+     * POST /api/v1/admin/categories
+     * Staff & Admin: Create a new main catalog category.
+     */
+    public function createCategory(): void
+    {
+        $body = Request::getBody();
+
+        $name = trim($body['name'] ?? '');
+        $description = trim($body['description'] ?? '');
+        $imageUrl = trim($body['image_url'] ?? '');
+
+        // Auto-generate URL slug from category name (e.g. "Action Figures" -> "action-figures")
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name), '-'));
+
+        $errors = [];
+        if (empty($name)) {
+            $errors['name'] = 'Category name is required.';
+        }
+
+        if (empty($slug)) {
+            $errors['name'] = 'Valid category name is required to generate slug.';
+        }
+
+        $db = Database::getConnection();
+
+        // Ensure category slug uniqueness in database
+        $checkStmt = $db->prepare("SELECT id FROM categories WHERE slug = :slug LIMIT 1");
+        $checkStmt->execute([':slug' => $slug]);
+        if ($checkStmt->fetch()) {
+            $errors['name'] = 'A category with this name or slug already exists.';
+        }
+
+        if (!empty($errors)) {
+            Response::error('Validation failed.', 422, $errors);
+        }
+
+        $insertSql = "INSERT INTO categories (name, slug, description, image_url, is_active)
+                      VALUES (:name, :slug, :description, :image_url, 1)";
+        $insertStmt = $db->prepare($insertSql);
+        $insertStmt->execute([
+            ':name'        => $name,
+            ':slug'        => $slug,
+            ':description' => !empty($description) ? $description : null,
+            ':image_url'   => !empty($imageUrl) ? $imageUrl : null,
+        ]);
+
+        $newId = (int) $db->lastInsertId();
+        $fetchStmt = $db->prepare("SELECT * FROM categories WHERE id = :id LIMIT 1");
+        $fetchStmt->execute([':id' => $newId]);
+
+        Response::success($fetchStmt->fetch(), 'Category created successfully.', 201);
+    }
+
+    /**
+     * POST /api/v1/admin/upload
+     * Staff & Admin: Secure multipart image upload for catalog & categories.
+     */
+    public function uploadImage(): void
+    {
+        if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            Response::error('No file uploaded or an upload error occurred.', 400);
+        }
+
+        $file = $_FILES['image'];
+
+        // Maximum upload limit: 5MB (5 * 1024 * 1024 bytes)
+        $maxBytes = 5 * 1024 * 1024;
+        if ($file['size'] > $maxBytes) {
+            Response::error('File size exceeds the 5MB limit.', 422);
+        }
+
+        // Whitelist allowed MIME types and enforce verified file extensions
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            'image/gif'  => 'gif'
+        ];
+
+        // Inspect file magic bytes rather than trusting client-provided extension
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        if (!isset($allowedMimes[$mime])) {
+            Response::error('Invalid file format. Only JPG, PNG, WEBP, and GIF images are allowed.', 422);
+        }
+
+        $ext = $allowedMimes[$mime];
+        $uploadDir = __DIR__ . '/../../public/uploads/categories';
+
+        // Create folder recursively if it does not yet exist
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+            Response::error('Server could not create upload directory.', 500);
+        }
+
+        // Generate unguessable random filename to prevent overwrites or traversal attacks
+        $fileName = 'cat_' . bin2hex(random_bytes(8)) . '.' . $ext;
+        $targetPath = $uploadDir . '/' . $fileName;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            Response::error('Failed to save uploaded file to disk.', 500);
+        }
+
+        // Return relative public path accessible via Nginx
+        $publicUrl = '/uploads/categories/' . $fileName;
+
+        Response::success([
+            'url'      => $publicUrl,
+            'filename' => $fileName,
+            'size'     => $file['size']
+        ], 'Image uploaded successfully.', 200);
     }
 }

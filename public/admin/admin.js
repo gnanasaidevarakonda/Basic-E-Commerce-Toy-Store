@@ -322,6 +322,9 @@ function renderProducts(products) {
         return;
     }
 
+    const currentUser = JSON.parse(localStorage.getItem('toyverse_user') || '{}');
+    const isAdmin = currentUser.role === 'admin';
+
     tbody.innerHTML = products.map(p => {
         const isLive = parseInt(p.is_active) === 1;
         return `
@@ -378,9 +381,12 @@ function renderProducts(products) {
                     </button>
                 `}
 
-                <button class="btn-3d btn-3d-danger" onclick="deleteToy(${p.id}, '${escapeHtml(p.name)}')">
-                    🗑️
-                </button>
+                <!-- SUPER ADMIN ONLY: Operational staff do not have delete permissions -->
+                ${isAdmin ? `
+                    <button class="btn-3d btn-3d-danger" onclick="deleteToy(${p.id}, '${escapeHtml(p.name)}')">
+                        🗑️
+                    </button>
+                ` : ''}
             </td>
         </tr>
     `}).join('');
@@ -478,7 +484,7 @@ async function viewToyDetails(id) {
 
         let html = '';
         if (parsed.summary) {
-            html += `<p style="margin-bottom: 12px; color: #e2e8f0; line-height: 1.5;">${escapeHtml(parsed.summary)}</p>`;
+            html += `<p class="toy-detail-summary" style="margin-bottom: 12px; line-height: 1.5;">${escapeHtml(parsed.summary)}</p>`;
         }
 
         if (parsed.features && parsed.features.length > 0) {
@@ -696,6 +702,49 @@ document.getElementById('add-category-form').addEventListener('submit', async (e
         btn.textContent = 'Create Category';
     }
 });
+// UPLOAD COVER IMAGE FOR MAIN CATEGORY
+const catFileInput = document.getElementById('cat-file-upload');
+if (catFileInput) {
+    catFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const token = localStorage.getItem('toyverse_token');
+        const statusEl = document.getElementById('cat-upload-status');
+        const imageInput = document.getElementById('cat-image');
+
+        if (statusEl) {
+            statusEl.textContent = `Uploading ${file.name}...`;
+            statusEl.style.color = 'var(--mint-400)';
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const res = await fetch(`${API_BASE}/admin/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.message || 'Image upload failed.');
+
+            if (imageInput) imageInput.value = json.data.url;
+            if (statusEl) {
+                statusEl.textContent = `✓ Uploaded: ${json.data.filename}`;
+                statusEl.style.color = 'var(--mint-400)';
+            }
+            showToast('Cover image uploaded successfully!', 'success');
+        } catch (err) {
+            if (statusEl) {
+                statusEl.textContent = `✗ Upload failed: ${err.message}`;
+                statusEl.style.color = '#f87171';
+            }
+            showToast(err.message, 'error');
+        }
+    });
+}
 
 // CREATE SUBCATEGORY
 document.getElementById('add-sub-form').addEventListener('submit', async (e) => {
@@ -781,14 +830,20 @@ function renderManagers(managers) {
                 </span>
             </td>
             <td>${m.created_at ? m.created_at.split(' ')[0] : '-'}</td>
-            <td style="text-align: right;">
+                        <td style="text-align: right;">
                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
                     <button class="btn-3d btn-3d-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="viewManagerDetails(${m.id})">
                         Inspect
                     </button>
-                    <button class="btn-3d btn-3d-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteManagerPrompt(${m.id}, '${escapeHtml(m.full_name)}')">
-                        Revoke
-                    </button>
+                    ${parseInt(m.is_active) === 1 ? `
+                        <button class="btn-3d btn-3d-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="toggleManagerStatus(${m.id}, '${escapeHtml(m.full_name)}', 1)">
+                            Revoke
+                        </button>
+                    ` : `
+                        <button class="btn-3d btn-3d-primary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="toggleManagerStatus(${m.id}, '${escapeHtml(m.full_name)}', 0)">
+                            Grant
+                        </button>
+                    `}
                 </div>
             </td>
         </tr>
@@ -806,18 +861,23 @@ async function viewManagerDetails(id) {
         if (!res.ok) throw new Error(json.message);
 
         const m = json.data;
-        document.getElementById('mgr-detail-name').textContent = m.full_name;
-        document.getElementById('mgr-detail-email').textContent = m.email;
-        document.getElementById('mgr-detail-phone').textContent = m.phone || 'Not provided';
-        document.getElementById('mgr-detail-joined').textContent = m.created_at || '-';
+        const nameEl = document.getElementById('mgr-detail-name');
+        if (nameEl) nameEl.textContent = m.full_name;
+        const emailEl = document.getElementById('mgr-detail-email');
+        if (emailEl) emailEl.textContent = m.email;
+        const phoneEl = document.getElementById('mgr-detail-phone');
+        if (phoneEl) phoneEl.textContent = m.phone || 'Not provided';
+        const joinedEl = document.getElementById('mgr-detail-joined');
+        if (joinedEl) joinedEl.textContent = m.created_at || '-';
 
         const statusEl = document.getElementById('mgr-detail-status');
-        if (parseInt(m.is_active) === 1) {
-            statusEl.innerHTML = '<span style="color: var(--mint-400); font-weight: 700;">Active Staff</span>';
-        } else {
-            statusEl.innerHTML = '<span style="color: #f87171; font-weight: 700;">Suspended / Revoked</span>';
+        if (statusEl) {
+            if (parseInt(m.is_active) === 1) {
+                statusEl.innerHTML = '<span style="color: var(--mint-400); font-weight: 700;">Active Staff</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color: #f87171; font-weight: 700;">Suspended / Revoked</span>';
+            }
         }
-
         openModal('view-manager-modal');
     } catch (err) {
         showToast(err.message, 'error');
@@ -857,19 +917,21 @@ document.getElementById('add-manager-form').addEventListener('submit', async (e)
     }
 });
 
-async function deleteManager(id, name) {
-    if (!confirm(`Are you sure you want to revoke access for manager "${name}"?`)) return;
+async function toggleManagerStatus(id, name, currentStatus) {
+    const actionText = currentStatus === 1 ? 'revoke access for' : 'grant access to';
+    if (!confirm(`Are you sure you want to ${actionText} manager "${name}"?`)) return;
 
     try {
         const token = localStorage.getItem('toyverse_token');
-        const res = await fetch(`${API_BASE}/admin/managers/${id}`, {
-            method: 'DELETE',
+        const res = await fetch(`${API_BASE}/admin/managers/${id}/status`, {
+            method: 'PATCH',
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.message);
-        showToast('Manager access revoked', 'success');
-        loadManagers();
+
+        showToast(json.message, 'success');
+        loadManagers(); // Live reload automatically swaps the button from Revoke to Grant (or vice-versa)!
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -974,16 +1036,22 @@ async function viewCustomerDetails(id) {
         if (!res.ok) throw new Error(json.message);
 
         const c = json.data;
-        document.getElementById('cust-detail-name').textContent = c.full_name;
-        document.getElementById('cust-detail-email').textContent = c.email;
-        document.getElementById('cust-detail-phone').textContent = c.phone || 'Not provided';
-        document.getElementById('cust-detail-joined').textContent = c.created_at || '-';
+        const nameEl = document.getElementById('cust-detail-name');
+        if (nameEl) nameEl.textContent = c.full_name;
+        const emailEl = document.getElementById('cust-detail-email');
+        if (emailEl) emailEl.textContent = c.email;
+        const phoneEl = document.getElementById('cust-detail-phone');
+        if (phoneEl) phoneEl.textContent = c.phone || 'Not provided';
+        const joinedEl = document.getElementById('cust-detail-joined');
+        if (joinedEl) joinedEl.textContent = c.created_at || '-';
 
         const statusEl = document.getElementById('cust-detail-status');
-        if (parseInt(c.is_active) === 1) {
-            statusEl.innerHTML = '<span style="color: var(--mint-400); font-weight: 700;">Active Account</span>';
-        } else {
-            statusEl.innerHTML = '<span style="color: #f87171; font-weight: 700;">Suspended</span>';
+        if (statusEl) {
+            if (parseInt(c.is_active) === 1) {
+                statusEl.innerHTML = '<span style="color: var(--mint-400); font-weight: 700;">Active Account</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color: #f87171; font-weight: 700;">Suspended</span>';
+            }
         }
 
         openModal('view-customer-modal');

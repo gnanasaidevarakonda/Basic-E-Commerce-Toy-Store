@@ -13,9 +13,9 @@
    - **Never** modify, overwrite, or create application code files (`src/`, `public/`, `database/`) behind the user's back.
    - Always output the code block clearly in chat and instruct the user to create/edit the file themselves.
    - The user must run syntax checks (`php -l`) and terminal commands with their own hands.
-3. **Strictly ONE File at a Time:**
-   - Never dump multiple files in a single turn. Proceed file-by-file.
-   - Ensure the current file is saved, verified with `php -l`, and explained before introducing the next file.
+3. **Backend File-by-File & Frontend Bulk Efficiency:**
+   - **Backend (`src/`):** Strictly ONE file at a time. Explain line-by-line, verify with `php -l`, and focus on deep architectural learning.
+   - **Frontend (`public/`):** Provide bulk, ready-to-paste code blocks directly so the user can quickly update UI without interruption to their backend focus.
 4. **Beginner-Friendly, In-Depth Explanations:**
    - Explain line-by-line what every piece of code does.
    - Explain PHP symbols (`$`, `::`, `->`, `=>`, `?array`, `??`, `mixed`).
@@ -172,8 +172,11 @@ basic_e-commerce/
 | `GET` | `/api/v1/admin/managers/{id}` | `[AuthMiddleware, AdminMiddleware]` | Super Admin inspects single manager profile details |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
 | `DELETE`| `/api/v1/admin/managers/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin removes/revokes a manager account |
+| `PATCH`| `/api/v1/admin/managers/{id}/status`| `[AuthMiddleware, AdminMiddleware]` | Super Admin 1-click dynamic Grant / Revoke access toggle |
 | `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Dedicated Customer Directory (`role = 'user'`, `?status=&q=`) |
 | `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single customer profile (Managers restricted to customers; 403 on staff/admins) |
+| `POST`| `/api/v1/admin/categories` | `[AuthMiddleware, StaffMiddleware]` | Staff create main category (auto-slug, description, cover image) |
+| `POST`| `/api/v1/admin/upload` | `[AuthMiddleware, StaffMiddleware]` | Secure multipart image upload for catalog & categories |
 | `PATCH`| `/api/v1/admin/users/{id}/status`| `[AuthMiddleware, StaffMiddleware]` | Staff 1-click toggle between Active and Suspended for customer accounts |
 
 ---
