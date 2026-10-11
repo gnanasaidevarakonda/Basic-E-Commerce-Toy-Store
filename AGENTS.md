@@ -67,14 +67,21 @@
 
 ## 3. Seed Accounts & Credentials
 
-- **Admin Account:**
-  - Email: `admin@toystore.com`
-  - Password: `admin123`
-  - Role: `admin` (Has full administrative backoffice access)
-- **Customer Account:**
-  - Email: `customer@toystore.com`
-  - Password: `customer123`
-  - Role: `user` (Standard customer)
+Universal passwords across seed accounts:
+- **Admin:** `admin123`
+- **Managers:** `manager123`
+- **Customers:** `customer123`
+
+| ID | Name | Email | Password | Role | Status (`is_active`) | Testing Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `Store-Admin` | `admin@toystore.com` | `admin123` | `admin` | Active (`1`) | Super Admin backoffice access, manager creation/revocation, hard delete |
+| **2** | `Jane Customer` | `customer@toystore.com` | `customer123` | `user` | Active (`1`) | Primary shopper, cart checkout, profile inspection |
+| **3** | `Ruhani Sharma` | `ruhani@toystore.com` | `manager123` | `manager` | Active (`1`) | Operational inventory manager: catalog CRUD, stock/featured toggles |
+| **4** | `Vikram Malhotra` | `vikram@toystore.com` | `manager123` | `manager` | Active (`1`) | Secondary manager: multi-manager directory inspection modal |
+| **5** | `Alex Suspended` | `alex.suspended@toystore.com` | `manager123` | `manager` | Deactivated (`0`) | Tests red/inactive status dot and 403 login rejection for suspended staff |
+| **6** | `John Shopper` | `john@example.com` | `customer123` | `user` | Active (`1`) | Secondary shopper: tests directory search filtering (`?q=john`) |
+| **7** | `Priya Patel` | `priya@example.com` | `customer123` | `user` | Active (`1`) | International shopper format (`+91` phone): tests directory formatting |
+| **8** | `Blocked User` | `blocked@example.com` | `customer123` | `user` | Deactivated (`0`) | Tests Customer Directory filter (`?status=inactive`) and auth rejection |
 
 ---
 

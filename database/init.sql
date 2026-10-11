@@ -146,6 +146,11 @@ CREATE TABLE `payments` (
 -- SEED DATA
 -- ====================================================================
 -- Users Seed (Admin: admin123 | Customer: customer123)
+-- Users Seed (1 Super Admin, 3 Managers [2 Active, 1 Suspended], 4 Customers [3 Active, 1 Blocked])
+-- Universal Passwords:
+--   admin@toystore.com          => admin123
+--   *@toystore.com (managers)   => manager123
+--   *@* (customers)             => customer123
 INSERT INTO `users` (
         `id`,
         `full_name`,
@@ -172,8 +177,73 @@ VALUES (
         '+1-555-0102',
         'user',
         1
+    ),
+    (
+        3,
+        'Ruhani Sharma',
+        'ruhani@toystore.com',
+        '$2y$10$vYeXKhXZSv2vcJDA/uPWtOfRhx.di4CdFXHlC1jU74KWBIvjhsRtC',
+        '+91-9876543210',
+        'manager',
+        1
+    ),
+    (
+        4,
+        'Vikram Malhotra',
+        'vikram@toystore.com',
+        '$2y$10$vYeXKhXZSv2vcJDA/uPWtOfRhx.di4CdFXHlC1jU74KWBIvjhsRtC',
+        '+91-9811223344',
+        'manager',
+        1
+    ),
+    (
+        5,
+        'Alex Suspended',
+        'alex.suspended@toystore.com',
+        '$2y$10$vYeXKhXZSv2vcJDA/uPWtOfRhx.di4CdFXHlC1jU74KWBIvjhsRtC',
+        '+1-555-0199',
+        'manager',
+        0
+    ),
+    (
+        6,
+        'John Shopper',
+        'john@example.com',
+        '$2y$10$GKMHp2VZgHUNwa8Hgo7n6en3Jtdpi3Kfe.lhQ44CvSBMVqgTtVRhG',
+        '+1-555-0144',
+        'user',
+        1
+    ),
+    (
+        7,
+        'Priya Patel',
+        'priya@example.com',
+        '$2y$10$GKMHp2VZgHUNwa8Hgo7n6en3Jtdpi3Kfe.lhQ44CvSBMVqgTtVRhG',
+        '+91-9988776655',
+        'user',
+        1
+    ),
+    (
+        8,
+        'Blocked User',
+        'blocked@example.com',
+        '$2y$10$GKMHp2VZgHUNwa8Hgo7n6en3Jtdpi3Kfe.lhQ44CvSBMVqgTtVRhG',
+        '+1-555-0188',
+        'user',
+        0
     ) ON DUPLICATE KEY
-UPDATE `id` = `id`;
+UPDATE `full_name` =
+VALUES(`full_name`),
+    `email` =
+VALUES(`email`),
+    `password_hash` =
+VALUES(`password_hash`),
+    `phone` =
+VALUES(`phone`),
+    `role` =
+VALUES(`role`),
+    `is_active` =
+VALUES(`is_active`);
 -- Categories Seed
 -- Categories Seed
 INSERT INTO `categories` (
