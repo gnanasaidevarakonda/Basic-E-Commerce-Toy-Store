@@ -62,19 +62,30 @@
 - **Tunneling & Staging Exposure:**
   - High-reliability HTTP/2 Cloudflare Tunnel: `cloudflared tunnel --protocol http2 --edge-ip-version auto --url http://localhost:8086`.
   - Kernel UDP buffer calibration: `net.core.rmem_max=2500000`, `net.core.wmem_max=2500000` (eliminates QUIC datagram drop errors).
+- **Git & Remote Access:**
+  - Secure SSH authentication via Ed25519 keypair (`id_ed25519`).
+  - Remote Origin URL: `git@github.com:gnanasaidevarakonda/Basic-E-Commerce-Toy-Store.git`.
+  - Development Asset Caching: Nginx sends `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` in `docker/nginx/default.conf` to prevent browser asset caching.
 
 ---
 
 ## 3. Seed Accounts & Credentials
 
-- **Admin Account:**
-  - Email: `admin@toystore.com`
-  - Password: `admin123`
-  - Role: `admin` (Has full administrative backoffice access)
-- **Customer Account:**
-  - Email: `customer@toystore.com`
-  - Password: `customer123`
-  - Role: `user` (Standard customer)
+Universal passwords across seed accounts:
+- **Admin:** `admin123`
+- **Managers:** `manager123`
+- **Customers:** `customer123`
+
+| ID | Name | Email | Password | Role | Status (`is_active`) | Testing Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `Store-Admin` | `admin@toystore.com` | `admin123` | `admin` | Active (`1`) | Super Admin backoffice access, manager creation/revocation, hard delete |
+| **2** | `Jane Customer` | `customer@toystore.com` | `customer123` | `user` | Active (`1`) | Primary shopper, cart checkout, profile inspection |
+| **3** | `Ruhani Sharma` | `ruhani@toystore.com` | `manager123` | `manager` | Active (`1`) | Operational inventory manager: catalog CRUD, stock/featured toggles |
+| **4** | `Vikram Malhotra` | `vikram@toystore.com` | `manager123` | `manager` | Active (`1`) | Secondary manager: multi-manager directory inspection modal |
+| **5** | `Alex Suspended` | `alex.suspended@toystore.com` | `manager123` | `manager` | Deactivated (`0`) | Tests red/inactive status dot and 403 login rejection for suspended staff |
+| **6** | `John Shopper` | `john@example.com` | `customer123` | `user` | Active (`1`) | Secondary shopper: tests directory search filtering (`?q=john`) |
+| **7** | `Priya Patel` | `priya@example.com` | `customer123` | `user` | Active (`1`) | International shopper format (`+91` phone): tests directory formatting |
+| **8** | `Blocked User` | `blocked@example.com` | `customer123` | `user` | Deactivated (`0`) | Tests Customer Directory filter (`?status=inactive`) and auth rejection |
 
 ---
 
@@ -238,6 +249,15 @@ basic_e-commerce/
   - Isolated multi-environment Docker orchestration: Windows DEV (`HOST_WEB_PORT=8085`, `HOST_DB_PORT=3307`, `toystore_dev`) and Ubuntu WSL STAGING (`HOST_WEB_PORT=8086`, `HOST_DB_PORT=8088`, `toystore_staging`).
   - Safe zero-leak environment configuration: Git-tracked `.env.example` blueprint with placeholders, gitignored `.env.development` and `.env.staging`, active `.env` switcher.
   - Tunneling calibration: High-performance HTTP/2 Cloudflare Tunnel with Linux kernel UDP buffer optimization (`net.core.rmem_max=2500000`).
+  - Development Cache-Busting: Nginx `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` in `docker/nginx/default.conf` preventing stale browser asset caching.
+- Catalog & Staff Operations Overhaul:
+  - Category creation API (`POST /api/v1/admin/categories`) with automated slugification and database uniqueness validation.
+  - Multipart image upload API (`POST /api/v1/admin/upload`) with strict `finfo` magic-byte MIME validation (JPG, PNG, WEBP, GIF) and unguessable random filenames.
+  - Inline category cover image upload button in Backoffice Modal.
+  - Dynamic Manager Access Toggle (`PATCH /api/v1/admin/managers/{id}/status`): Super Admin 1-click Grant (green) / Revoke (red) with real-time `is_online` reset.
+  - Customer Status Toggle (`PATCH /api/v1/admin/users/{id}/status`): Staff 1-click active/suspended switch.
+  - Fixed modal hierarchy and null-safe DOM rendering for Staff and Customer Inspect modals.
+  - High-contrast Light Theme styles for product inspector, specifications table, and 3D hover scale animations.
 
 ---
 
