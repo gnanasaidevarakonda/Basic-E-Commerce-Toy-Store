@@ -45,6 +45,15 @@ class AuthController
             $errors['password'] = 'Password must contain at least one special character (e.g. !@#$%).';
         }
 
+        // phone number check validation.
+        if (!empty($phone)) {
+            if (strlen($phone) > 20) {
+                $errors['phone'] = 'Phone number cannot exceed 20 characters.';
+            } elseif (!preg_match('/^[0-9+\-\s()]+$/', $phone)) {
+                $errors['phone'] = 'Please enter a valid phone number.';
+            }
+        }
+
         // Return HTTP 422 if validatation fails
         if (!empty($errors)) {
             Response::error('Validation failed', 422, $errors);
