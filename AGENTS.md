@@ -49,19 +49,20 @@
     - `toystore_staging_db` (MySQL 8.0): Host port `8088:3306`.
     - Profile: `COMPOSE_PROJECT_NAME=toystore_staging`, `HOST_WEB_PORT=8086`, `HOST_DB_PORT=8088`.
   - **Universal Docker Compose CLI:** Both environments run identical commands without `-p` flags (`docker compose up -d`, `down`, `up -d --build`, `down -v`).
-- **Environment File Architecture:**
-  - `.env.example`: Git-tracked minimalist blueprint with clean placeholders (`<placeholder>`), zero secrets, and zero pre-filled values.
-  - `.env.development`: Local-only (gitignored) active configuration for Windows Dev.
-  - `.env.staging`: Local-only (gitignored) active configuration for Ubuntu Staging.
-  - `.env`: Active environment profile switcher (`cp .env.development .env` or Linux symlink `ln -sf .env.staging .env`).
+- **Environment File Architecture (Twelve-Factor Single-.env Pattern):**
+  - `.env.example`: Git-tracked master blueprint with working local defaults and self-documenting environment templates (Dev, Staging, Production).
+  - `.env`: The ONLY active configuration file on any machine or server (strictly gitignored). Created locally via `cp .env.example .env`.
+  - Zero clutter: `.env.development` and `.env.staging` are removed in favor of standard per-machine `.env` configuration.
 - **Database Credentials (Internal):**
   - DB Host: `db`, DB Name: `toystore_db`, User: `toystore_user`, Password: `toystore_password`, Root Password: `root_password`.
 - **Automated Database Auto-Loader:**
   - Mounted via `docker-compose.yml`: `./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro`.
   - Bootstraps all schemas and seed data automatically on `docker compose up -d --build`.
 - **Tunneling & Staging Exposure:**
+  - Automated Work-PC Script: `./scripts/tunnel.sh [8085|8086]` (zero datagram/ICMP warnings, auto-copies URL to Windows clipboard).
   - High-reliability HTTP/2 Cloudflare Tunnel: `cloudflared tunnel --protocol http2 --edge-ip-version auto --url http://localhost:8086`.
   - Kernel UDP buffer calibration: `net.core.rmem_max=2500000`, `net.core.wmem_max=2500000` (eliminates QUIC datagram drop errors).
+  - Kernel unprivileged ping calibration: `net.ipv4.ping_group_range = 0 2147483647` (eliminates ICMP socket permission warnings).
 - **Git & Remote Access:**
   - Secure SSH authentication via Ed25519 keypair (`id_ed25519`).
   - Remote Origin URL: `git@github.com:gnanasaidevarakonda/Basic-E-Commerce-Toy-Store.git`.
@@ -140,6 +141,8 @@ basic_e-commerce/
 │   │   └── User.php               # Bcrypt password hashing, findByEmail, findById, create
 │   └── Services/
 │       └── JWTService.php         # Stateless HMAC-SHA256 token generator & validator
+├── scripts/
+│   └── tunnel.sh              # Automated zero-error HTTP/2 Cloudflare Tunnel with clipboard sync
 ├── .env.example                   # Environment configuration template
 ├── .gitignore                     # Git ignore rules
 ├── AGENTS.md                      # THIS FILE — Universal project memory & rules
@@ -247,7 +250,7 @@ basic_e-commerce/
 - Dual-Environment Architecture & Web Server Fixes:
   - Nginx directory canonical redirect fix (`absolute_redirect off;` in `docker/nginx/default.conf` preventing port-stripping on `/admin`).
   - Isolated multi-environment Docker orchestration: Windows DEV (`HOST_WEB_PORT=8085`, `HOST_DB_PORT=3307`, `toystore_dev`) and Ubuntu WSL STAGING (`HOST_WEB_PORT=8086`, `HOST_DB_PORT=8088`, `toystore_staging`).
-  - Safe zero-leak environment configuration: Git-tracked `.env.example` blueprint with placeholders, gitignored `.env.development` and `.env.staging`, active `.env` switcher.
+  - Safe zero-leak environment configuration: Twelve-Factor pattern with Git-tracked `.env.example` blueprint with defaults, gitignored local `.env` per machine.
   - Tunneling calibration: High-performance HTTP/2 Cloudflare Tunnel with Linux kernel UDP buffer optimization (`net.core.rmem_max=2500000`).
   - Development Cache-Busting: Nginx `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` in `docker/nginx/default.conf` preventing stale browser asset caching.
 - Catalog & Staff Operations Overhaul:

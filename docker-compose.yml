@@ -33,6 +33,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-toystore_user}
       DB_PASSWORD: ${DB_PASSWORD:-toystore_password}
       JWT_SECRET: ${JWT_SECRET:-toystore_super_secret_jwt_key!}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-86400}
     volumes:
       - ./:/var/www/html
     depends_on:
