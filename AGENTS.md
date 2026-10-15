@@ -13,9 +13,9 @@
    - **Never** modify, overwrite, or create application code files (`src/`, `public/`, `database/`) behind the user's back.
    - Always output the code block clearly in chat and instruct the user to create/edit the file themselves.
    - The user must run syntax checks (`php -l`) and terminal commands with their own hands.
-3. **Strictly ONE File at a Time:**
-   - Never dump multiple files in a single turn. Proceed file-by-file.
-   - Ensure the current file is saved, verified with `php -l`, and explained before introducing the next file.
+3. **Backend File-by-File & Frontend Bulk Efficiency:**
+   - **Backend (`src/`):** Strictly ONE file at a time. Explain line-by-line, verify with `php -l`, and focus on deep architectural learning.
+   - **Frontend (`public/`):** Provide bulk, ready-to-paste code blocks directly so the user can quickly update UI without interruption to their backend focus.
 4. **Beginner-Friendly, In-Depth Explanations:**
    - Explain line-by-line what every piece of code does.
    - Explain PHP symbols (`$`, `::`, `->`, `=>`, `?array`, `??`, `mixed`).
@@ -49,19 +49,24 @@
     - `toystore_staging_db` (MySQL 8.0): Host port `8088:3306`.
     - Profile: `COMPOSE_PROJECT_NAME=toystore_staging`, `HOST_WEB_PORT=8086`, `HOST_DB_PORT=8088`.
   - **Universal Docker Compose CLI:** Both environments run identical commands without `-p` flags (`docker compose up -d`, `down`, `up -d --build`, `down -v`).
-- **Environment File Architecture:**
-  - `.env.example`: Git-tracked minimalist blueprint with clean placeholders (`<placeholder>`), zero secrets, and zero pre-filled values.
-  - `.env.development`: Local-only (gitignored) active configuration for Windows Dev.
-  - `.env.staging`: Local-only (gitignored) active configuration for Ubuntu Staging.
-  - `.env`: Active environment profile switcher (`cp .env.development .env` or Linux symlink `ln -sf .env.staging .env`).
+- **Environment File Architecture (Twelve-Factor Single-.env Pattern):**
+  - `.env.example`: Git-tracked master blueprint with working local defaults and self-documenting environment templates (Dev, Staging, Production).
+  - `.env`: The ONLY active configuration file on any machine or server (strictly gitignored). Created locally via `cp .env.example .env`.
+  - Zero clutter: `.env.development` and `.env.staging` are removed in favor of standard per-machine `.env` configuration.
 - **Database Credentials (Internal):**
   - DB Host: `db`, DB Name: `toystore_db`, User: `toystore_user`, Password: `toystore_password`, Root Password: `root_password`.
 - **Automated Database Auto-Loader:**
   - Mounted via `docker-compose.yml`: `./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro`.
   - Bootstraps all schemas and seed data automatically on `docker compose up -d --build`.
 - **Tunneling & Staging Exposure:**
+  - Automated Work-PC Script: `./scripts/tunnel.sh [8085|8086]` (zero datagram/ICMP warnings, auto-copies URL to Windows clipboard).
   - High-reliability HTTP/2 Cloudflare Tunnel: `cloudflared tunnel --protocol http2 --edge-ip-version auto --url http://localhost:8086`.
   - Kernel UDP buffer calibration: `net.core.rmem_max=2500000`, `net.core.wmem_max=2500000` (eliminates QUIC datagram drop errors).
+  - Kernel unprivileged ping calibration: `net.ipv4.ping_group_range = 0 2147483647` (eliminates ICMP socket permission warnings).
+- **Git & Remote Access:**
+  - Secure SSH authentication via Ed25519 keypair (`id_ed25519`).
+  - Remote Origin URL: `git@github.com:gnanasaidevarakonda/Basic-E-Commerce-Toy-Store.git`.
+  - Development Asset Caching: Nginx sends `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` in `docker/nginx/default.conf` to prevent browser asset caching.
 
 ---
 
@@ -136,6 +141,8 @@ basic_e-commerce/
 │   │   └── User.php               # Bcrypt password hashing, findByEmail, findById, create
 │   └── Services/
 │       └── JWTService.php         # Stateless HMAC-SHA256 token generator & validator
+├── scripts/
+│   └── tunnel.sh              # Automated zero-error HTTP/2 Cloudflare Tunnel with clipboard sync
 ├── .env.example                   # Environment configuration template
 ├── .gitignore                     # Git ignore rules
 ├── AGENTS.md                      # THIS FILE — Universal project memory & rules
@@ -163,6 +170,7 @@ basic_e-commerce/
 | `GET` | `/api/v1/auth/profile` | `[AuthMiddleware]` | View authenticated user profile (Requires Bearer token) |
 | `GET` | `/api/v1/auth/user` | `[AuthMiddleware]` | Alias for profile endpoint |
 | `POST`| `/api/v1/admin/auth/login` | Public | Staff backoffice login (Managers & Super Admins) |
+| `POST`| `/api/v1/admin/auth/logout` | `[AuthMiddleware]` | Staff backoffice logout (sets `is_online = 0`) |
 | `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats: products, active, low-stock, categories, customers & managers |
 | `GET` | `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Full inventory inspection (`?stock=low`) |
 | `GET` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single product complete details (even if inactive) |
@@ -174,12 +182,16 @@ basic_e-commerce/
 | `POST`| `/api/v1/admin/subcategories`| `[AuthMiddleware, StaffMiddleware]` | Staff create new subcategory under a category |
 | `DELETE`| `/api/v1/admin/subcategories/{id}`| `[AuthMiddleware, AdminMiddleware]`| Super Admin delete subcategory (safely unlinks toys) |
 | `DELETE`| `/api/v1/admin/products/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin smart delete (hard-delete or soft-delete) |
-| `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers |
+| `GET` | `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin lists all active inventory managers (with `is_online` status) |
 | `GET` | `/api/v1/admin/managers/{id}` | `[AuthMiddleware, AdminMiddleware]` | Super Admin inspects single manager profile details |
 | `POST`| `/api/v1/admin/managers` | `[AuthMiddleware, AdminMiddleware]` | Super Admin creates new manager account |
 | `DELETE`| `/api/v1/admin/managers/{id}`| `[AuthMiddleware, AdminMiddleware]` | Super Admin removes/revokes a manager account |
+| `PATCH`| `/api/v1/admin/managers/{id}/status`| `[AuthMiddleware, AdminMiddleware]` | Super Admin 1-click dynamic Grant / Revoke access toggle |
 | `GET` | `/api/v1/admin/users` | `[AuthMiddleware, StaffMiddleware]` | Dedicated Customer Directory (`role = 'user'`, `?status=&q=`) |
 | `GET` | `/api/v1/admin/users/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single customer profile (Managers restricted to customers; 403 on staff/admins) |
+| `POST`| `/api/v1/admin/categories` | `[AuthMiddleware, StaffMiddleware]` | Staff create main category (auto-slug, description, cover image) |
+| `POST`| `/api/v1/admin/upload` | `[AuthMiddleware, StaffMiddleware]` | Secure multipart image upload for catalog & categories |
+| `PATCH`| `/api/v1/admin/users/{id}/status`| `[AuthMiddleware, StaffMiddleware]` | Staff 1-click toggle between Active and Suspended for customer accounts |
 
 ---
 
@@ -238,8 +250,17 @@ basic_e-commerce/
 - Dual-Environment Architecture & Web Server Fixes:
   - Nginx directory canonical redirect fix (`absolute_redirect off;` in `docker/nginx/default.conf` preventing port-stripping on `/admin`).
   - Isolated multi-environment Docker orchestration: Windows DEV (`HOST_WEB_PORT=8085`, `HOST_DB_PORT=3307`, `toystore_dev`) and Ubuntu WSL STAGING (`HOST_WEB_PORT=8086`, `HOST_DB_PORT=8088`, `toystore_staging`).
-  - Safe zero-leak environment configuration: Git-tracked `.env.example` blueprint with placeholders, gitignored `.env.development` and `.env.staging`, active `.env` switcher.
+  - Safe zero-leak environment configuration: Twelve-Factor pattern with Git-tracked `.env.example` blueprint with defaults, gitignored local `.env` per machine.
   - Tunneling calibration: High-performance HTTP/2 Cloudflare Tunnel with Linux kernel UDP buffer optimization (`net.core.rmem_max=2500000`).
+  - Development Cache-Busting: Nginx `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` in `docker/nginx/default.conf` preventing stale browser asset caching.
+- Catalog & Staff Operations Overhaul:
+  - Category creation API (`POST /api/v1/admin/categories`) with automated slugification and database uniqueness validation.
+  - Multipart image upload API (`POST /api/v1/admin/upload`) with strict `finfo` magic-byte MIME validation (JPG, PNG, WEBP, GIF) and unguessable random filenames.
+  - Inline category cover image upload button in Backoffice Modal.
+  - Dynamic Manager Access Toggle (`PATCH /api/v1/admin/managers/{id}/status`): Super Admin 1-click Grant (green) / Revoke (red) with real-time `is_online` reset.
+  - Customer Status Toggle (`PATCH /api/v1/admin/users/{id}/status`): Staff 1-click active/suspended switch.
+  - Fixed modal hierarchy and null-safe DOM rendering for Staff and Customer Inspect modals.
+  - High-contrast Light Theme styles for product inspector, specifications table, and 3D hover scale animations.
 
 ---
 

@@ -53,7 +53,7 @@ $router->get('api/v1/auth/profile', [AuthController::class, 'profile'], [AuthMid
 // BACKOFFICE AUTHENTICATION
 // staff login (both admin & managers)
 $router->post('api/v1/admin/auth/login', [AdminAuthController::class, 'login']);
-
+$router->post('api/v1/admin/auth/logout', [AdminAuthController::class, 'logout'], [AuthMiddleware::class]);
 // OPERATIONAL STAFF ROUTES (mannagers and  super admins)
 // Execute dashboard metrics
 $router->get('api/v1/admin/dashboard', [AdminController::class, 'dashboard'], [AuthMiddleware::class, StaffMiddleware::class]);
@@ -66,23 +66,27 @@ $router->get('/api/v1/admin/products/{id}', [AdminController::class, 'show'], [A
 $router->patch('/api/v1/admin/products/{id}/status', [AdminController::class, 'toggleStatus'], [AuthMiddleware::class, StaffMiddleware::class]);
 $router->patch('/api/v1/admin/products/{id}/featured', [AdminController::class, 'toggleFeatured'], [AuthMiddleware::class, StaffMiddleware::class]);
 // Staff subcategory management--
-$router->get('api/v1/admin/subcategories', [AdminController::class, 'listSubcategories'], [AuthMiddleware::class, StaffMiddleware::class]);
+// Staff Category & Subcategory Management
+$router->post('/api/v1/admin/categories', [AdminController::class, 'createCategory'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->post('/api/v1/admin/upload', [AdminController::class, 'uploadImage'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->get('/api/v1/admin/subcategories', [AdminController::class, 'listSubcategories'], [AuthMiddleware::class, StaffMiddleware::class]);
 $router->post('/api/v1/admin/subcategories', [AdminController::class, 'createSubcategory'], [AuthMiddleware::class, StaffMiddleware::class]);
-
 
 // Executive SUPER ADMIN ONLY ROUTES
 // safe product deletion (hard delete junk items/soft delete items with orders)
 $router->delete('/api/v1/admin/products/{id}', [AdminController::class, 'destroy'], [AuthMiddleware::class, AdminMiddleware::class]);
-$router->delete('api/v1/admin/products/{id}', [AuthController::class, 'deleteSubcategory'], [AuthMiddleware::class, StaffMiddleware::class]);
-
+$router->delete('/api/v1/admin/subcategories/{id}', [AdminController::class, 'deleteSubcategory'], [AuthMiddleware::class, AdminMiddleware::class]);
 // Team & Staff Management
 $router->get('/api/v1/admin/managers', [AdminController::class, 'listManagers'], [AuthMiddleware::class, AdminMiddleware::class]);
 $router->get('api/v1/admin/managers/{id}', [AdminController::class, 'showManager'], [AuthMiddleware::class, AdminMiddleware::class]);
 $router->post('/api/v1/admin/managers', [AdminController::class, 'createManager'], [AuthMiddleware::class, AdminMiddleware::class]);
 $router->delete('/api/v1/admin/managers/{id}', [AdminController::class, 'deleteManager'], [AuthMiddleware::class, AdminMiddleware::class]);
+$router->patch('api/v1/admin/managers/{id}/status', [AdminController::class, 'toggleManagerStatus'], [AuthMiddleware::class, AdminMiddleware::class]);
+
 // Customer Directory (Staff & Admin)
 $router->get('/api/v1/admin/users', [AdminController::class, 'listUsers'], [AuthMiddleware::class, StaffMiddleware::class]);
 $router->get('/api/v1/admin/users/{id}', [AdminController::class, 'showUser'], [AuthMiddleware::class, StaffMiddleware::class]);
+$router->patch('api/v1/admin/users/{id}/status', [AdminController::class, 'toggleUserStatus'], [AuthMiddleware::class, StaffMiddleware::class]);
 
 // Temporary Test Controller
 class PublicTestController

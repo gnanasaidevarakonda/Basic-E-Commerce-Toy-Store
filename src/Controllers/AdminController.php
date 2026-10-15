@@ -71,7 +71,7 @@ class AdminController
 
         // Optional filter: view low stock items only (?stock=low)
         if (($params['stock'] ?? '') === 'low') {
-            $sql .= " WHERE p.stock_quantity <= 5";
+            $sql .= " WHERE p.stock_quantity <= 5 AND p.is_active =1";
         }
 
         $sql .= " ORDER BY p.id DESC";
@@ -419,7 +419,7 @@ class AdminController
         }
         $db = Database::getConnection();
 
-        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, created_at 
+        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, is_online, created_at 
                             FROM users 
                             WHERE role = 'manager' 
                             ORDER BY id DESC");
@@ -445,7 +445,7 @@ class AdminController
         $managerId = (int) $id;
         $db = Database::getConnection();
 
-        $stmt = $db->prepare("SELECT id, full_name, email, phone, role, is_active, created_at, updated_at 
+        $stmt = $db->prepare("SELECT id, full_name, email, phone, role, is_active, is_online, created_at, updated_at 
         FROM users WHERE id=:id AND role = 'manager' LIMIT 1");
         $stmt->execute([':id' => $managerId]);
         $manager = $stmt->fetch();
@@ -536,6 +536,56 @@ class AdminController
         ], "Manager '{$user['full_name']}' has been removed from staff.");
     }
     /**
+     * PATCH /api/v1/admin/managers/{id}/status
+     * SUPER ADMIN ONLY: Dynamic Grant / Revoke access toggle for managers.
+     */
+    public function toggleManagerStatus(string $id): void
+    {
+        $managerId = (int) $id;
+        $db        = Database::getConnection();
+
+        // 1. Fetch target user
+        $stmt = $db->prepare("SELECT id, full_name, role, is_active, is_online FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $managerId]);
+        $manager = $stmt->fetch();
+
+        if (!$manager) {
+            Response::error("Manager with ID {$managerId} not found.", 404);
+        }
+
+        // 2. Privilege Guard: Only allow toggling manager accounts
+        if ($manager['role'] !== 'manager') {
+            Response::error("Forbidden: Only manager accounts can be toggled via this endpoint.", 403);
+        }
+
+        // 3. Prevent self-modification
+        $callerId = AuthMiddleware::id();
+        if ($callerId && (int) $callerId === $managerId) {
+            Response::error("Forbidden: You cannot modify your own account.", 403);
+        }
+
+        // 4. Invert is_active status (1 -> 0, or 0 -> 1)
+        $newActive = ((int) $manager['is_active'] === 1) ? 0 : 1;
+        // When revoking access (0), immediately force is_online to 0
+        $newOnline = ($newActive === 0) ? 0 : (int) $manager['is_online'];
+
+        // Each parameter is strictly unique (:active, :online, :id) to comply with native PDO
+        $updateStmt = $db->prepare("UPDATE users SET is_active = :active, is_online = :online WHERE id = :id");
+        $updateStmt->execute([
+            ':active' => $newActive,
+            ':online' => $newOnline,
+            ':id'     => $managerId
+        ]);
+
+        $actionText = ($newActive === 1) ? 'granted' : 'revoked';
+
+        Response::success([
+            'manager_id' => $managerId,
+            'full_name'  => $manager['full_name'],
+            'is_active'  => $newActive
+        ], "Manager '{$manager['full_name']}' access has been {$actionText}.");
+    }
+    /**
      * GET /api/v1/admin/users
      * Staff & Admin: INspect all registered uers & customers with filters.
      */
@@ -619,6 +669,58 @@ class AdminController
         }
 
         Response::success($user, "User details retrieved successfully.");
+    }
+
+    /**
+     * PATCH /api/v1/admin/users/{id}/status
+     * Staff & Super Admin: 1-click toggle between Active (1) and Deactivated (0) for customer accounts.
+     * 
+     * Security & RBAC Guards:
+     * 1. Target Account Guard: Only customers (role = 'user') can be toggled through this endpoint.
+     *    Staff/managers or admins cannot be deactivated here.
+     * 2. Self-Protection: A user cannot deactivate their own account.
+     */
+    public function toggleUserStatus(string $id): void
+    {
+        $userId = (int) $id;
+        $db = Database::getConnection();
+
+        // 1. Fetch target user
+        $stmt = $db->prepare("SELECT id, full_name, role, is_active FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $userId]);
+        $targetUser = $stmt->fetch();
+
+        if (!$targetUser) {
+            Response::error("Customer with ID {$userId} not found.", 404);
+        }
+
+        // 2. Strict Privilege Guard: Only allow toggling customer accounts
+        if ($targetUser['role'] !== 'user') {
+            Response::error("Forbidden: Only customer accounts can be deactivated via this endpoint.", 403);
+        }
+
+        // 3. Prevent self-deactivation
+        $callerId = AuthMiddleware::id();
+        if ($callerId && $callerId === $userId) {
+            Response::error("Forbidden: You cannot modify the status of your own account.", 403);
+        }
+
+        // 4. Invert is_active status (1 -> 0, or 0 -> 1)
+        $newStatus = ((int) $targetUser['is_active'] === 1) ? 0 : 1;
+
+        $updateStmt = $db->prepare("UPDATE users SET is_active = :status WHERE id = :id");
+        $updateStmt->execute([
+            ':status' => $newStatus,
+            ':id'     => $userId
+        ]);
+
+        $statusLabel = ($newStatus === 1) ? 'activated' : 'deactivated';
+
+        Response::success([
+            'user_id'   => $userId,
+            'full_name' => $targetUser['full_name'],
+            'is_active' => $newStatus
+        ], "Customer account has been {$statusLabel} successfully.");
     }
 
     /**
@@ -739,5 +841,119 @@ class AdminController
             'deleted_id' => $subId,
             'deleted_name' => $sub['name']
         ], 'Subcategory deleted successfully.');
+    }
+
+    /**
+     * POST /api/v1/admin/categories
+     * Staff & Admin: Create a new main catalog category.
+     */
+    public function createCategory(): void
+    {
+        $body = Request::getBody();
+
+        $name = trim($body['name'] ?? '');
+        $description = trim($body['description'] ?? '');
+        $imageUrl = trim($body['image_url'] ?? '');
+
+        // Auto-generate URL slug from category name (e.g. "Action Figures" -> "action-figures")
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name), '-'));
+
+        $errors = [];
+        if (empty($name)) {
+            $errors['name'] = 'Category name is required.';
+        }
+
+        if (empty($slug)) {
+            $errors['name'] = 'Valid category name is required to generate slug.';
+        }
+
+        $db = Database::getConnection();
+
+        // Ensure category slug uniqueness in database
+        $checkStmt = $db->prepare("SELECT id FROM categories WHERE slug = :slug LIMIT 1");
+        $checkStmt->execute([':slug' => $slug]);
+        if ($checkStmt->fetch()) {
+            $errors['name'] = 'A category with this name or slug already exists.';
+        }
+
+        if (!empty($errors)) {
+            Response::error('Validation failed.', 422, $errors);
+        }
+
+        $insertSql = "INSERT INTO categories (name, slug, description, image_url, is_active)
+                      VALUES (:name, :slug, :description, :image_url, 1)";
+        $insertStmt = $db->prepare($insertSql);
+        $insertStmt->execute([
+            ':name'        => $name,
+            ':slug'        => $slug,
+            ':description' => !empty($description) ? $description : null,
+            ':image_url'   => !empty($imageUrl) ? $imageUrl : null,
+        ]);
+
+        $newId = (int) $db->lastInsertId();
+        $fetchStmt = $db->prepare("SELECT * FROM categories WHERE id = :id LIMIT 1");
+        $fetchStmt->execute([':id' => $newId]);
+
+        Response::success($fetchStmt->fetch(), 'Category created successfully.', 201);
+    }
+
+    /**
+     * POST /api/v1/admin/upload
+     * Staff & Admin: Secure multipart image upload for catalog & categories.
+     */
+    public function uploadImage(): void
+    {
+        if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            Response::error('No file uploaded or an upload error occurred.', 400);
+        }
+
+        $file = $_FILES['image'];
+
+        // Maximum upload limit: 5MB (5 * 1024 * 1024 bytes)
+        $maxBytes = 5 * 1024 * 1024;
+        if ($file['size'] > $maxBytes) {
+            Response::error('File size exceeds the 5MB limit.', 422);
+        }
+
+        // Whitelist allowed MIME types and enforce verified file extensions
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            'image/gif'  => 'gif'
+        ];
+
+        // Inspect file magic bytes rather than trusting client-provided extension
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        if (!isset($allowedMimes[$mime])) {
+            Response::error('Invalid file format. Only JPG, PNG, WEBP, and GIF images are allowed.', 422);
+        }
+
+        $ext = $allowedMimes[$mime];
+        $uploadDir = __DIR__ . '/../../public/uploads/categories';
+
+        // Create folder recursively if it does not yet exist
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+            Response::error('Server could not create upload directory.', 500);
+        }
+
+        // Generate unguessable random filename to prevent overwrites or traversal attacks
+        $fileName = 'cat_' . bin2hex(random_bytes(8)) . '.' . $ext;
+        $targetPath = $uploadDir . '/' . $fileName;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            Response::error('Failed to save uploaded file to disk.', 500);
+        }
+
+        // Return relative public path accessible via Nginx
+        $publicUrl = '/uploads/categories/' . $fileName;
+
+        Response::success([
+            'url'      => $publicUrl,
+            'filename' => $fileName,
+            'size'     => $file['size']
+        ], 'Image uploaded successfully.', 200);
     }
 }
