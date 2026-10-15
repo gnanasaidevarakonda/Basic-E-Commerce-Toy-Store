@@ -31,8 +31,18 @@ class AuthController
             $errors['email'] = 'A valid email address is required.';
         }
 
-        if (empty($password) || strlen($password) < 6) {
-            $errors['password'] = 'password must be atleast 6 character long.';
+        if (empty($password)) {
+            $errors['password'] = 'Password is required.';
+        } elseif (strlen($password) < 8) {
+            $errors['password'] = 'Password must be atleast 8 characters long.';
+        } elseif (!preg_match('/[A-Z]/', $password)) {
+            $errors['password'] = 'Password must contain atleast one Uppercase letter (A-Z).';
+        } elseif (!preg_match('/[a-z]/', $password)) {
+            $errors['password'] = 'Password must contain at least one lowercase letter (a-z).';
+        } elseif (!preg_match('/[0-9]/', $password)) {
+            $errors['password'] = 'Password must contain at least one number (0-9).';
+        } elseif (!preg_match('/[\W_]/', $password)) {
+            $errors['password'] = 'Password must contain at least one special character (e.g. !@#$%).';
         }
 
         // Return HTTP 422 if validatation fails

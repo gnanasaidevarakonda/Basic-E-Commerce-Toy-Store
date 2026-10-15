@@ -6,6 +6,7 @@
 *.key
 secrets/
 credentials.json
+docker/nginx/.htpasswd
 
 # Composer dependencies
 vendor/
