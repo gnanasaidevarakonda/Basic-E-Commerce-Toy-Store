@@ -32,6 +32,11 @@
    - Proactively prompt the user when to create a feature branch (`git switch -c feat/...` or `fix/...`).
    - Prompt atomic commits at key logical milestones once syntax verification (`php -l`) passes.
    - Prompt clean merging into `main` and switching branches when features are stabilized, helping build intuitive professional Git muscle memory.
+   - Provide an active Git status summary at the bottom of responses to keep workflows disciplined.
+8. **Frontend Design Lock (CRITICAL):**
+   - The current UI/UX in `public/admin/` (`index.html`, `admin.css`, `admin.js`) is finalized and **LOCKED**.
+   - Do NOT redesign, re-theme, or alter existing frontend visual elements or styling without explicit user request.
+   - Always explicitly warn the user in advance if any proposed code change touches or affects frontend elements.
 
 ---
 

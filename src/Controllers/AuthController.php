@@ -114,7 +114,7 @@ class AuthController
 
         // 4. check it he user account is active
         if ((int) $user['is_active'] !== 1) {
-            Response::error('Your account has been deactivated. Please contgact support.', 403);
+            Response::error('Your account has been deactivated. Please contact support.', 403);
         }
 
         // 5. Never expose password_hash in response

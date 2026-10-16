@@ -118,7 +118,7 @@ class AdminAuthController
 
         // 4. check if account is active
         if ((int) $user['is_active'] !== 1) {
-            Response::error('This account has been deactivated Conatact Adminstratation.', 403);
+            Response::error('This account has been deactivated, Please Contact Adminstratation.', 403);
         }
 
         // 5. Critical RBAC Guard: Ensure user is either manager or admin
