@@ -171,6 +171,7 @@ basic_e-commerce/
 | `GET` | `/api/v1/auth/user` | `[AuthMiddleware]` | Alias for profile endpoint |
 | `POST`| `/api/v1/admin/auth/login` | Public | Staff backoffice login (Managers & Super Admins) |
 | `POST`| `/api/v1/admin/auth/logout` | `[AuthMiddleware]` | Staff backoffice logout (sets `is_online = 0`) |
+| `POST`| `/api/v1/admin/auth/ping` | `[AuthMiddleware]` | Staff presence heartbeat (keeps session alive & updates `updated_at = NOW()`) |
 | `GET` | `/api/v1/admin/dashboard` | `[AuthMiddleware, StaffMiddleware]` | Executive stats: products, active, low-stock, categories, customers & managers |
 | `GET` | `/api/v1/admin/products` | `[AuthMiddleware, StaffMiddleware]` | Full inventory inspection (`?stock=low`) |
 | `GET` | `/api/v1/admin/products/{id}`| `[AuthMiddleware, StaffMiddleware]` | Single product complete details (even if inactive) |
@@ -262,12 +263,31 @@ basic_e-commerce/
   - Fixed modal hierarchy and null-safe DOM rendering for Staff and Customer Inspect modals.
   - High-contrast Light Theme styles for product inspector, specifications table, and 3D hover scale animations.
 
+### [DONE] Phase 5.6: Real-Time Presence Engine & Multi-Photo Gallery API
+- Real-Time Staff Presence & Heartbeat System:
+  - Heartbeat Ping endpoint (`POST /api/v1/admin/auth/ping`): Active staff browser sessions send periodic heartbeat to keep `is_online = 1` and refresh `updated_at = NOW()`.
+  - Smart Inactivity Expiration: `AdminController::listManagers()` evaluates online status using dynamic SQL (`CASE WHEN is_online = 1 AND updated_at >= NOW() - INTERVAL 45 SECOND THEN 1 ELSE 0 END AS is_online`), eliminating ghost online accounts.
+  - Zero-Flicker Live Manager Polling: `pollManagerPresence()` polls `/api/v1/admin/managers` every 3s in the Backoffice, smoothly toggling `.live-dot.live-online` (glowing green pulse) and `.live-dot.live-offline` without full-table re-renders or screen flicker.
+  - Mobile & Tab Wakeup: `visibilitychange` event listener instantly triggers a heartbeat ping when a mobile screen unlocks or a dormant tab wakes up.
+- Product Gallery Backend Core API:
+  - Primary Image Table Subquery: `AdminController::index()` returns `primary_image` via correlated subquery (`(SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_primary DESC, sort_order ASC, id ASC LIMIT 1) AS primary_image`), powering 48px square thumbnails in the catalog table.
+  - Multi-Photo Insertion & Sync: `AdminController::store()` and `update()` persist up to 6 gallery photos into `product_images` with automatic primary cover defaults.
+  - Dynamic Upload Directory: `AdminController::uploadImage()` supports dynamic query parameter (`?folder=products` or `?folder=categories`), saving into `/public/uploads/products/` or `/public/uploads/categories/`.
+- DevOps & WSL2 Tunneling Fixes:
+  - WSL2 static DNS configuration (`/etc/resolv.conf` with `1.1.1.1` and `8.8.8.8`) resolving Cloudflare API stub lookup errors.
+  - Automated project tooling: `scripts/tunnel.sh` with automatic URL extraction and Windows clipboard sync.
+
 ---
 
-### [CURRENT FOCUS] Phase 6: Cart & Atomic Checkout
-- In-memory/session or database cart (`cart_items`).
-- `Order.php`, `OrderItem.php`, `OrderController.php`.
-- **Atomic MySQL Transactions:** Safe concurrency locking (`SELECT ... FOR UPDATE`) to prevent overselling inventory during simultaneous checkouts.
+### [CURRENT FOCUS] Branch: `feat/live-presence-and-images-upload`
+- **Milestone 1 [DONE]:** Backend Core API (`AdminController.php`, `AdminAuthController.php`, `index.php`).
+- **Milestone 2 [DONE]:** Frontend Multi-Photo Gallery UI:
+  - Multi-photo file uploader & preview grid in Modal 1 (`#toy-form-modal`).
+  - Interactive hero photo strip in Modal 2 (`#view-toy-modal`).
+  - 48px product thumbnails in catalog table.
+  - Multi-photo state synchronization (`openAddToyModal`, `openEditToyModal`, form submit).
+- **Milestone 3 [READY TO MERGE]:** Atomic verification, testing, and clean merge into `main`.
+- **Next Phase:** Phase 6 (Shopping Cart & Atomic Concurrency Checkout).
 
 ---
 

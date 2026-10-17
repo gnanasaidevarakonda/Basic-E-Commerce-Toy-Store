@@ -38,3 +38,6 @@ desktop.ini
 !AGENTS.md
 .aiignore
 .geminiignore
+
+# User-Test Data
+public/uploads/*

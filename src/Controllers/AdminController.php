@@ -381,7 +381,7 @@ class AdminController
             $delStmt->execute([':product_id' => $productId]);
 
             // Insert updated gallery
-            $imgStmt = $db->prepare("INSERT INTO product_images(product_id, images_url, is_primary, sort_order) 
+            $imgStmt = $db->prepare("INSERT INTO product_images(product_id, image_url, is_primary, sort_order) 
             VALUES(:product_id, :image_url, :is_primary, :sort_order)");
 
             foreach (array_slice($body['images'], 0, 6) as $index => $img) {
@@ -986,7 +986,7 @@ class AdminController
         $folder = Request::getQueryParams()['folder'] ?? ($_POST['folder'] ?? 'products');
         $folder = in_array($folder, ['categories', 'products'], true) ? $folder : 'products';
 
-        $uploadDir = __DIR__ . '/../../public/uploads/categories';
+        $uploadDir = __DIR__ . '/../../public/uploads/' . $folder;
 
         // Create folder recursively if it does not yet exist
         if (!is_dir($uploadDir) && !mkdir($uploadDir, 0777, true) && !is_dir($uploadDir)) {

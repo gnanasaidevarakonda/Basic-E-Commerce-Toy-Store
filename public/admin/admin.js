@@ -475,7 +475,29 @@ async function viewToyDetails(id) {
         const p = json.data;
         document.getElementById('view-toy-sku').textContent = p.sku;
         document.getElementById('view-toy-name').textContent = p.name;
-        document.getElementById('view-toy-image').src = (p.images && p.images[0]) ? p.images[0].image_url : 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400';
+
+        // 1. Multi-photo Hero Image & Dynamic Thumbnail Strip
+        const primaryImg = (p.images && p.images.length > 0)
+            ? (p.images.find(img => parseInt(img.is_primary) === 1) || p.images[0])
+            : { image_url: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400' };
+
+        document.getElementById('view-toy-image').src = primaryImg.image_url;
+
+        const stripEl = document.getElementById('view-toy-gallery-strip');
+        if (stripEl) {
+            if (p.images && p.images.length > 1) {
+                stripEl.style.display = 'flex';
+                stripEl.innerHTML = p.images.map(img => {
+                    const isActive = img.image_url === primaryImg.image_url;
+                    return `<img src="${escapeHtml(img.image_url)}" class="gallery-strip-thumb ${isActive ? 'active' : ''}" alt="Photo" onclick="switchViewHeroPhoto(this, '${escapeHtml(img.image_url)}')">`;
+                }).join('');
+            } else {
+                stripEl.style.display = 'none';
+                stripEl.innerHTML = '';
+            }
+        }
+
+        // 2. Restore Product Metadata Badges & Pricing
         document.getElementById('view-toy-category').textContent = p.category_name || 'General';
         document.getElementById('view-toy-subcategory').textContent = p.subcategory_name || 'None';
         document.getElementById('view-toy-subcategory').style.display = p.subcategory_name ? 'inline-block' : 'none';
@@ -483,7 +505,7 @@ async function viewToyDetails(id) {
         document.getElementById('view-toy-price').textContent = formatPrice(p.price);
         document.getElementById('view-toy-stock').textContent = `${p.stock_quantity} units available`;
 
-        // Render structured description
+        // 3. Render Structured Description & Technical Specifications
         const parsed = parseStructuredDescription(p.description);
         const container = document.getElementById('view-toy-desc-container');
 
@@ -513,6 +535,8 @@ async function viewToyDetails(id) {
         }
 
         container.innerHTML = html;
+
+        // 4. Open Modal Window
         openModal('view-toy-modal');
     } catch (err) {
         showToast(err.message, 'error');
@@ -552,6 +576,13 @@ async function openEditToyModal(id) {
             document.getElementById('toy-subcategory').value = p.subcategory_id;
         }
 
+        // NEW: Load existing product photos into gallery editor
+        currentToyGallery = (p.images && p.images.length > 0)
+            ? p.images.map(img => ({ image_url: img.image_url, is_primary: parseInt(img.is_primary) === 1 }))
+            : [];
+        renderToyGalleryPreview();
+        if (document.getElementById('toy-upload-status')) document.getElementById('toy-upload-status').textContent = '';
+
         openModal('toy-form-modal');
     } catch (err) {
         showToast(err.message, 'error');
@@ -562,6 +593,11 @@ function openAddToyModal() {
     document.getElementById('toy-modal-title').textContent = 'Add New Toy to Inventory';
     document.getElementById('form-toy-id').value = '';
     document.getElementById('toy-form').reset();
+
+    // NEW: Reset gallery state
+    currentToyGallery = [];
+    renderToyGalleryPreview();
+    if (document.getElementById('toy-upload-status')) document.getElementById('toy-upload-status').textContent = '';
     openModal('toy-form-modal');
 }
 
@@ -585,7 +621,8 @@ document.getElementById('toy-form').addEventListener('submit', async (e) => {
         stock_quantity: parseInt(document.getElementById('toy-stock').value),
         age_group: document.getElementById('toy-age').value,
         is_featured: document.getElementById('toy-featured').checked ? 1 : 0,
-        description: packageStructuredDescription() // Packs structured specs & highlights!
+        description: packageStructuredDescription(), // Packs structured specs & highlights!
+        images: currentToyGallery
     };
 
     const url = toyId ? `${API_BASE}/admin/products/${toyId}` : `${API_BASE}/admin/products`;
@@ -1193,4 +1230,146 @@ function showToast(message, type = 'success') {
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============================================================================
+// 12. MULTI-PHOTO GALLERY ENGINE (PHASE 5.6)
+// ============================================================================
+
+let currentToyGallery = []; // Array of { image_url: string, is_primary: boolean }
+
+// Render thumbnails inside Modal 1 form
+function renderToyGalleryPreview() {
+    const grid = document.getElementById('toy-gallery-preview-grid');
+    const counter = document.getElementById('toy-gallery-counter');
+    if (!grid) return;
+
+    if (counter) {
+        counter.textContent = `${currentToyGallery.length} / 6 uploaded`;
+    }
+
+    if (currentToyGallery.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 16px; text-align: center; border: 1px dashed var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.8rem;">
+                No photos attached yet. Paste a URL or click "Upload Photos" (Max 6).
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = currentToyGallery.map((img, idx) => {
+        const isPrimary = Boolean(img.is_primary) || idx === 0;
+        return `
+            <div class="gallery-preview-card ${isPrimary ? 'is-primary' : ''}">
+                <img src="${escapeHtml(img.image_url)}" class="gallery-preview-img" alt="Photo ${idx + 1}">
+                ${isPrimary ? '<span class="gallery-primary-badge">★ Cover</span>' : `<button type="button" class="gallery-make-primary-btn" onclick="setPrimaryGalleryImage(${idx})">Set Cover</button>`}
+                <button type="button" class="gallery-remove-btn" onclick="removeGalleryImage(${idx})" title="Remove photo">✕</button>
+            </div>
+        `;
+    }).join('');
+}
+
+// Add image via URL input
+function addGalleryImageUrl() {
+    const input = document.getElementById('toy-image-url-input');
+    if (!input) return;
+    const url = input.value.trim();
+
+    if (!url) {
+        showToast('Please enter an image URL.', 'error');
+        return;
+    }
+
+    if (currentToyGallery.length >= 6) {
+        showToast('Maximum 6 photos allowed per toy.', 'error');
+        return;
+    }
+
+    currentToyGallery.push({
+        image_url: url,
+        is_primary: currentToyGallery.length === 0
+    });
+
+    input.value = '';
+    renderToyGalleryPreview();
+}
+
+// Remove image from gallery
+function removeGalleryImage(index) {
+    if (index >= 0 && index < currentToyGallery.length) {
+        const removed = currentToyGallery.splice(index, 1)[0];
+        // If removed image was primary and items remain, make first one primary
+        if (removed.is_primary && currentToyGallery.length > 0) {
+            currentToyGallery[0].is_primary = true;
+        }
+        renderToyGalleryPreview();
+    }
+}
+
+// Make specific image the primary cover
+function setPrimaryGalleryImage(index) {
+    currentToyGallery.forEach((img, idx) => {
+        img.is_primary = idx === index;
+    });
+    renderToyGalleryPreview();
+}
+
+// Upload multiple local files
+const toyFileInput = document.getElementById('toy-file-upload');
+if (toyFileInput) {
+    toyFileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const availableSlots = 6 - currentToyGallery.length;
+        if (availableSlots <= 0) {
+            showToast('Gallery is full (Max 6 photos). Remove one to upload more.', 'error');
+            e.target.value = '';
+            return;
+        }
+
+        const filesToUpload = files.slice(0, availableSlots);
+        const statusEl = document.getElementById('toy-upload-status');
+        const token = localStorage.getItem('toyverse_token');
+
+        for (let i = 0; i < filesToUpload.length; i++) {
+            const file = filesToUpload[i];
+            if (statusEl) statusEl.textContent = `Uploading ${i + 1}/${filesToUpload.length}: ${file.name}...`;
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/upload?folder=products`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.message || 'Upload failed');
+
+                currentToyGallery.push({
+                    image_url: json.data.url,
+                    is_primary: currentToyGallery.length === 0
+                });
+                renderToyGalleryPreview();
+            } catch (err) {
+                showToast(`Failed to upload ${file.name}: ${err.message}`, 'error');
+            }
+        }
+
+        if (statusEl) {
+            statusEl.textContent = 'Upload complete!';
+            setTimeout(() => { statusEl.textContent = ''; }, 3000);
+        }
+        e.target.value = '';
+    });
+}
+
+// Switch hero image in Modal 2 (Inspector)
+function switchViewHeroPhoto(thumbEl, url) {
+    const hero = document.getElementById('view-toy-image');
+    if (hero) hero.src = url;
+    document.querySelectorAll('.gallery-strip-thumb').forEach(t => t.classList.remove('active'));
+    if (thumbEl) thumbEl.classList.add('active');
 }
