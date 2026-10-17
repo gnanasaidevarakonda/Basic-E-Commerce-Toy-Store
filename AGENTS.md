@@ -279,15 +279,19 @@ basic_e-commerce/
 
 ---
 
-### [CURRENT FOCUS] Branch: `feat/live-presence-and-images-upload`
-- **Milestone 1 [DONE]:** Backend Core API (`AdminController.php`, `AdminAuthController.php`, `index.php`).
-- **Milestone 2 [DONE]:** Frontend Multi-Photo Gallery UI:
-  - Multi-photo file uploader & preview grid in Modal 1 (`#toy-form-modal`).
-  - Interactive hero photo strip in Modal 2 (`#view-toy-modal`).
-  - 48px product thumbnails in catalog table.
-  - Multi-photo state synchronization (`openAddToyModal`, `openEditToyModal`, form submit).
-- **Milestone 3 [READY TO MERGE]:** Atomic verification, testing, and clean merge into `main`.
-- **Next Phase:** Phase 6 (Shopping Cart & Atomic Concurrency Checkout).
+### [DONE] Phase 5.6: Real-Time Presence Engine & Multi-Photo Gallery API
+- Branch `feat/live-presence-and-images-upload` merged into `main`.
+- Real-time staff presence heartbeat ping & smart 45s inactivity expiration.
+- Zero-flicker live manager table polling.
+- Product gallery photo upload (`/public/uploads/products/`) & multi-photo MySQL persistence.
+- Interactive hero photo strip in view inspector and 48px catalog table thumbnails.
+
+---
+
+### [CURRENT FOCUS] Phase 6: Shopping Cart & Atomic Concurrency Checkout Engine
+- **Milestone 1:** Cart state management & stock reservation architecture.
+- **Milestone 2:** Atomic transaction checkout with pessimistic row locks (`SELECT ... FOR UPDATE`).
+- **Milestone 3:** Order confirmation receipts, invoices, and cart cleanup.
 
 ---
 
