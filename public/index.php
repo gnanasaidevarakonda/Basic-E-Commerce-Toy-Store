@@ -54,6 +54,7 @@ $router->get('api/v1/auth/profile', [AuthController::class, 'profile'], [AuthMid
 // staff login (both admin & managers)
 $router->post('api/v1/admin/auth/login', [AdminAuthController::class, 'login']);
 $router->post('api/v1/admin/auth/logout', [AdminAuthController::class, 'logout'], [AuthMiddleware::class]);
+$router->post('api/v1/admin/auth/ping', [AdminAuthController::class, 'ping'], [AuthMiddleware::class]);
 // OPERATIONAL STAFF ROUTES (mannagers and  super admins)
 // Execute dashboard metrics
 $router->get('api/v1/admin/dashboard', [AdminController::class, 'dashboard'], [AuthMiddleware::class, StaffMiddleware::class]);

@@ -119,6 +119,7 @@ function showDashboard() {
     loadStats();
     loadCategories();
     loadProducts();
+    startStaffHeartbeat();
 }
 
 // LOGIN FORM SUBMISSION
@@ -183,6 +184,8 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
             console.error('Logout error:', e);
         }
     }
+    stopStaffHeartbeat();
+    stopManagerPolling();
     localStorage.removeItem('toyverse_token');
     localStorage.removeItem('toyverse_user');
     switchTab('catalog');
@@ -202,6 +205,7 @@ function switchTab(tab) {
     if (catalogSec) catalogSec.style.display = 'none';
     if (custSec) custSec.style.display = 'none';
     if (staffSec) staffSec.style.display = 'none';
+    stopManagerPolling();
 
     if (tab === 'catalog') {
         document.querySelectorAll('.nav-tab-btn')[0]?.classList.add('active');
@@ -214,6 +218,7 @@ function switchTab(tab) {
         document.getElementById('tab-btn-staff')?.classList.add('active');
         if (staffSec) staffSec.style.display = 'block';
         loadManagers();
+        startManagerPolling();
     }
 }
 
@@ -782,6 +787,88 @@ document.getElementById('add-sub-form').addEventListener('submit', async (e) => 
     }
 });
 
+/**
+ * REAL-TIME PRESENCE & HEARTBEAT ENGINE
+ */
+let staffHeartbeatInterval = null;
+let managerPollInterval = null;
+
+// 1. Staff Heartbeat Sender: Tells server this device is still active every 10s
+function startStaffHeartbeat() {
+    stopStaffHeartbeat();
+    pingHeartbeat();
+    staffHeartbeatInterval = setInterval(pingHeartbeat, 10000);
+}
+
+function stopStaffHeartbeat() {
+    if (staffHeartbeatInterval) {
+        clearInterval(staffHeartbeatInterval);
+        staffHeartbeatInterval = null;
+    }
+}
+
+async function pingHeartbeat() {
+    const token = localStorage.getItem('toyverse_token');
+    if (!token) return;
+    try {
+        await fetch(`${API_BASE}/admin/auth/ping`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+    } catch (e) {
+        // Silent catch for network hiccups
+    }
+}
+
+// 2. Real-Time Manager Poller: Checks live dots every 3s without page reload
+function startManagerPolling() {
+    stopManagerPolling();
+    managerPollInterval = setInterval(pollManagerPresence, 3000);
+}
+function stopManagerPolling() {
+    if (managerPollInterval) {
+        clearInterval(managerPollInterval);
+        managerPollInterval = null;
+    }
+}
+
+// Mobile & Tab Wakeup: INstantly pings server when tab/phone wakes up
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        pingHeartbeat();
+        const staffSec = document.getElementById('section-staff');
+        if (staffSec && staffSec.style.display !== 'none') {
+            pollManagerPresence();
+        }
+    }
+});
+
+async function pollManagerPresence() {
+    const token = localStorage.getItem('toyverse_token');
+    if (!token) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/managers`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data.managers)) {
+            json.data.managers.forEach(m => {
+                const dot = document.getElementById(`mgr-dot-${m.id}`);
+                if (dot) {
+                    const isOnline = parseInt(m.is_online) === 1;
+                    const newClass = `live-dot ${isOnline ? 'live-online' : 'live-offline'}`;
+                    if (dot.className !== newClass) {
+                        dot.className = newClass;
+                        dot.title = isOnline ? 'Online (Logged In)' : 'Offline';
+                    }
+                }
+            });
+        }
+    } catch (e) { }
+}
+
 // ============================================================================
 // 5. STAFF / MANAGERS DIRECTORY
 // ============================================================================
@@ -819,7 +906,7 @@ function renderManagers(managers) {
         <tr>
             <td>
                 <span style="font-weight: 700; color: #fff;">${escapeHtml(m.full_name)}</span>
-                <span class="live-dot ${isOnline ? 'live-online' : 'live-offline'}" title="${isOnline ? 'Online (Logged In)' : 'Offline'}"></span>
+                <span id="mgr-dot-${m.id}" class="live-dot ${isOnline ? 'live-online' : 'live-offline'}" title="${isOnline ? 'Online (Logged In)' : 'Offline'}"></span>
                 <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">ID #${m.id}</span>
             </td>
             <td><span style="color: var(--mint-300);">${escapeHtml(m.email)}</span></td>

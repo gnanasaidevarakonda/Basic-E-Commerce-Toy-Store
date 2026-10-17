@@ -419,7 +419,12 @@ class AdminController
         }
         $db = Database::getConnection();
 
-        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, is_online, created_at 
+        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, 
+                                   CASE 
+                                       WHEN is_online = 1 AND updated_at >= NOW() - INTERVAL 45 SECOND THEN 1 
+                                       ELSE 0 
+                                   END AS is_online, 
+                                   created_at 
                             FROM users 
                             WHERE role = 'manager' 
                             ORDER BY id DESC");
