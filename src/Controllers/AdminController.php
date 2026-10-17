@@ -900,19 +900,37 @@ class AdminController
     /**
      * POST /api/v1/admin/upload
      * Staff & Admin: Secure multipart image upload for catalog & categories.
+     * Enforce magic-byte MIME validation, 10MB file limit, and unguessable random
+     * filenames.
      */
     public function uploadImage(): void
     {
-        if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
-            Response::error('No file uploaded or an upload error occurred.', 400);
+        // 1. Check if a file was provided in the multipart form data
+        if (empty($_FILES['image'])) {
+            Response::error('No Image file Provided in request.', 400);
         }
 
         $file = $_FILES['image'];
 
-        // Maximum upload limit: 5MB (5 * 1024 * 1024 bytes)
-        $maxBytes = 5 * 1024 * 1024;
+        // Decode native PHP upload error codes for transparent debugging
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $errorMessage = match ($file['error']) {
+                UPLOAD_ERR_INI_SIZE => 'File size exceeds server upload limit (10mb).',
+                UPLOAD_ERR_FORM_SIZE => 'File size exceeds form MAX_FILE_SIZE limit.',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded due to network issue.',
+                UPLOAD_ERR_NO_FILE => 'No file was uploded.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Server configuration error: Missing temporary upload folder.',
+                UPLOAD_ERR_CANT_WRITE => 'Server failed to write file to disk. Check directory permissions.',
+                default => 'An Unknown file upload error occured.'
+            };
+
+            Response::error($errorMessage, 400);
+        }
+
+        // Maximum upload limit: 10MB (10 * 1024 * 1024 bytes)
+        $maxBytes = 10 * 1024 * 1024;
         if ($file['size'] > $maxBytes) {
-            Response::error('File size exceeds the 5MB limit.', 422);
+            Response::error('File size exceeds the 10MB limit.', 422);
         }
 
         // Whitelist allowed MIME types and enforce verified file extensions
@@ -928,7 +946,7 @@ class AdminController
         $mime = $finfo->file($file['tmp_name']);
 
         if (!isset($allowedMimes[$mime])) {
-            Response::error('Invalid file format. Only JPG, PNG, WEBP, and GIF images are allowed.', 422);
+            Response::error("Invalid file format ({$mime}). Only JPG, PNG, WEBP, and GIF images are allowed.", 422);
         }
 
         $ext = $allowedMimes[$mime];
@@ -953,6 +971,7 @@ class AdminController
         Response::success([
             'url'      => $publicUrl,
             'filename' => $fileName,
+            'mime' => $mime,
             'size'     => $file['size']
         ], 'Image uploaded successfully.', 200);
     }

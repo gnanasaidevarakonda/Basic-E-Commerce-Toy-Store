@@ -38,3 +38,8 @@ desktop.ini
 !AGENTS.md
 .aiignore
 .geminiignore
+
+# User uploaded media assets
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/categories/.gitkeep
