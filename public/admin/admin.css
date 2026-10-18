@@ -1249,3 +1249,45 @@ body.light-theme .btn-3d-secondary:hover:not(:disabled) {
 body.light-theme .btn-3d-secondary:active:not(:disabled) {
     box-shadow: 0 1px 0 #64748b !important;
 }
+
+/* ==============================================================================
+   1:1 SQUARE PRODUCT PHOTO FRAME (NO CROPPING, NO STRETCHING)
+   ============================================================================== */
+
+/* Square Container in Product Details Modal */
+.toy-hero-frame {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto 16px auto;
+    background: #090e0b;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+/* Full toy display preserving aspect ratio */
+.toy-hero-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    display: block;
+    transition: transform 0.25s var(--ease-out);
+}
+
+.toy-hero-frame:hover .toy-hero-img {
+    transform: scale(1.03);
+}
+
+/* Light Theme Support */
+body.light-theme .toy-hero-frame {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
