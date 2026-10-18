@@ -64,7 +64,9 @@ class AdminController
                        c.name AS category_name, s.name AS subcategory_name, 
                        p.name, p.slug, p.sku, p.brand, p.age_group, 
                        p.price, p.compare_at_price, p.stock_quantity, 
-                       p.is_featured, p.is_active, p.created_at
+                       p.is_featured, p.is_active, p.created_at,
+                       (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_primary 
+                       DESC, sort_order ASC, id ASC LIMIT 1) AS primary_image
                 FROM products p
                 INNER JOIN categories c ON p.category_id = c.id
                 LEFT JOIN subcategories s ON p.subcategory_id = s.id";
@@ -276,6 +278,24 @@ class AdminController
 
         $newProductId = (int) $db->lastInsertId();
 
+        // 4b. Save Product gallery images.
+        $images = $body['images'] ?? [];
+        if (is_array($images) && !empty($images)) {
+            $imgStmt = $db->prepare("INSERT INTO product_images(product_id, image_url, is_primary, sort_order) VALUES(:product_id, :image_url, :is_primary, :sort_order)");
+            foreach (array_slice($images, 0, 6) as $index => $img) {
+                $imgUrl = is_array($img) ? trim($img['image_url'] ?? '') : trim($img);
+                if (!empty($imgUrl)) {
+                    $isPrimary = (is_array($img) && !empty($img['is_primary'])) || $index === 0 ? 1 : 0;
+                    $imgStmt->execute([
+                        ':product_id' => $newProductId,
+                        ':image_url' => $imgUrl,
+                        ':is_primary' => $isPrimary,
+                        ':sort_order' => $index
+                    ]);
+                }
+            }
+        }
+
         // 5. Fetch fresh record
         $fetchStmt = $db->prepare("SELECT * FROM products WHERE id = :id LIMIT 1");
         $fetchStmt->execute([':id' => $newProductId]);
@@ -353,6 +373,30 @@ class AdminController
 
         // Fetch refreshed record
         $fetchStmt->execute([':id' => $productId]);
+
+        // 3b. Sync product gallery images if provided
+        if (isset($body['images']) && is_array($body['images'])) {
+            //Delete existing images for this product
+            $delStmt = $db->prepare("DELETE FROM product_images WHERE product_id = :product_id");
+            $delStmt->execute([':product_id' => $productId]);
+
+            // Insert updated gallery
+            $imgStmt = $db->prepare("INSERT INTO product_images(product_id, image_url, is_primary, sort_order) 
+            VALUES(:product_id, :image_url, :is_primary, :sort_order)");
+
+            foreach (array_slice($body['images'], 0, 6) as $index => $img) {
+                $imgUrl = is_array($img) ? trim($img['image_url'] ?? '') : trim($img);
+                if (!empty($imgUrl)) {
+                    $isPrimary = (is_array($img) && !empty($img['is_primary'])) || $index === 0 ? 1 : 0;
+                    $imgStmt->execute([
+                        ':product_id' => $productId,
+                        ':image_url' => $imgUrl,
+                        ':is_primary' => $isPrimary,
+                        ':sort_order' => $index
+                    ]);
+                }
+            }
+        }
         $updatedProduct = $fetchStmt->fetch();
 
         Response::success($updatedProduct, 'Product updated successfully.');
@@ -419,7 +463,12 @@ class AdminController
         }
         $db = Database::getConnection();
 
-        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, is_online, created_at 
+        $stmt = $db->query("SELECT id, full_name, email, phone, role, is_active, 
+                                   CASE 
+                                       WHEN is_online = 1 AND updated_at >= NOW() - INTERVAL 45 SECOND THEN 1 
+                                       ELSE 0 
+                                   END AS is_online, 
+                                   created_at 
                             FROM users 
                             WHERE role = 'manager' 
                             ORDER BY id DESC");
@@ -950,15 +999,21 @@ class AdminController
         }
 
         $ext = $allowedMimes[$mime];
-        $uploadDir = __DIR__ . '/../../public/uploads/categories';
+
+        // Determine destination folder: 'products' or 'categories'
+        $folder = Request::getQueryParams()['folder'] ?? ($_POST['folder'] ?? 'products');
+        $folder = in_array($folder, ['categories', 'products'], true) ? $folder : 'products';
+
+        $uploadDir = __DIR__ . '/../../public/uploads/' . $folder;
 
         // Create folder recursively if it does not yet exist
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0777, true) && !is_dir($uploadDir)) {
             Response::error('Server could not create upload directory.', 500);
         }
 
         // Generate unguessable random filename to prevent overwrites or traversal attacks
-        $fileName = 'cat_' . bin2hex(random_bytes(8)) . '.' . $ext;
+        $prefix = $folder === 'categories' ? 'cat_' : 'toy_';
+        $fileName = $prefix . bin2hex(random_bytes(8)) . '.' . $ext;
         $targetPath = $uploadDir . '/' . $fileName;
 
         if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
@@ -966,13 +1021,13 @@ class AdminController
         }
 
         // Return relative public path accessible via Nginx
-        $publicUrl = '/uploads/categories/' . $fileName;
+        $publicUrl = '/uploads/' . $folder . '/' . $fileName;
 
         Response::success([
             'url'      => $publicUrl,
             'filename' => $fileName,
-            'mime' => $mime,
-            'size'     => $file['size']
-        ], 'Image uploaded successfully.', 200);
+            'size'     => $file['size'],
+            'mime' => $mime
+        ], 'Image uploaded successfully.', 201);
     }
 }

@@ -129,7 +129,7 @@ class AdminAuthController
 
         // Presence Tracking: Mark staff user online in database.
         $db = Database::getConnection();
-        $updateStmt = $db->prepare("UPDATE users SET is_online = 1 WHERE id =:id");
+        $updateStmt = $db->prepare("UPDATE users SET is_online = 1, updated_at = NOW() WHERE id = :id");
         $updateStmt->execute([':id' => (int) $user['id']]);
 
         // 6. Never expose password_hash in response
@@ -165,5 +165,22 @@ class AdminAuthController
         }
 
         Response::success(null, 'Staff logged out successfully.');
+    }
+
+    /**
+     * POST /api/v1/admin/auth/ping
+     * Presence Heartbeat: keeps staff marked online and refreshes updated_at timnestamp.
+     */
+    public function ping(): void
+    {
+        $user = AuthMiddleware::user();
+
+        if ($user && isset($user['id'])) {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("UPDATE users SET is_online =1, updated_at = NOW() WHERE id = :id");
+            $stmt->execute([':id' => (int)$user['id']]);
+        }
+
+        Response::success(['is_online' => 1], 'Presence heartbeat acknowledged.');
     }
 }
