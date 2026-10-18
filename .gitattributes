@@ -1,0 +1,39 @@
+# ==============================================================================
+# ToyVerse Repository Line Ending Normalization
+# Universal standard: LF in repository, auto-detect for operating systems
+# ==============================================================================
+
+# 1. Set default behavior to automatically normalize all text files to LF
+* text=auto eol=lf
+
+# 2. Source Code & Backend (Strictly LF across all OS)
+*.php text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.env.example text eol=lf
+
+# 3. Frontend Assets (Strictly LF)
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.svg text eol=lf
+
+# 4. Windows Specific Scripts (Only if using .bat/.cmd)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 5. Binary Media Files (NEVER touch or convert binary line endings)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
