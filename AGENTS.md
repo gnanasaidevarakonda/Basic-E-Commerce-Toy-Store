@@ -293,10 +293,13 @@ basic_e-commerce/
 
 ---
 
-### [CURRENT FOCUS] Phase 6: Shopping Cart & Atomic Concurrency Checkout Engine
-- **Milestone 1:** Cart state management & stock reservation architecture.
-- **Milestone 2:** Atomic transaction checkout with pessimistic row locks (`SELECT ... FOR UPDATE`).
-- **Milestone 3:** Order confirmation receipts, invoices, and cart cleanup.
+### [CURRENT FOCUS] Branch: `feat/shopping-cart-and-checkout`
+- **Milestone 1 [IN PROGRESS]:** Shopping Cart Model & Architecture:
+  - `database/schemas/cart_items.sql`: Schema with user/product foreign keys and unique constraint.
+  - `src/Models/Cart.php`: Model with live price calculations, stock checks, upsert item additions, IDOR protection.
+  - Next: `src/Controllers/CartController.php` and public route registration in `public/index.php`.
+- **Milestone 2 [UPCOMING]:** Atomic transaction checkout with pessimistic row locks (`SELECT ... FOR UPDATE`).
+- **Milestone 3 [UPCOMING]:** Order confirmation receipts, invoices, and cart cleanup.
 
 ---
 
