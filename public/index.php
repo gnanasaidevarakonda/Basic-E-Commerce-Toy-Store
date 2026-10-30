@@ -16,6 +16,7 @@ use App\Middlewares\RateLimitMiddleware;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\StaffMiddleware;
 use App\Middlewares\AdminMiddleware;
+use App\Controllers\CartController;
 
 // 2. Initialize the Router
 $router = new Router();
@@ -49,6 +50,14 @@ $router->post('api/v1/auth/login', [AuthController::class, 'login']);
 
 // Protected Profile End points (Guarded bt auth middlewares)
 $router->get('api/v1/auth/profile', [AuthController::class, 'profile'], [AuthMiddleware::class]);
+
+// CUSTOMER SHOPPING CART (Guarded by AuthMiddleware)
+$router->get('api/v1/cart', [CartController::class, 'index'], [AuthMiddleware::class]);
+$router->get('api/v1/cart/count', [CartController::class, 'count'], [AuthMiddleware::class]);
+$router->post('api/v1/cart/items', [CartController::class, 'add'], [AuthMiddleware::class]);
+$router->put('/api/v1/cart/items/{id}', [CartController::class, 'update'], [AuthMiddleware::class]);
+$router->delete('api/v1/cart/items/{id}', [CartController::class, 'remove'], [AuthMiddleware::class]);
+$router->delete('/api/v1/cart', [CartController::class, 'clear'], [AuthMiddleware::class]);
 
 // BACKOFFICE AUTHENTICATION
 // staff login (both admin & managers)
