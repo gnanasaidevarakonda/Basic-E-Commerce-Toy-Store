@@ -174,6 +174,12 @@ basic_e-commerce/
 | `POST`| `/api/v1/auth/login` | Public | Authenticate customer credentials (returns JWT) |
 | `GET` | `/api/v1/auth/profile` | `[AuthMiddleware]` | View authenticated user profile (Requires Bearer token) |
 | `GET` | `/api/v1/auth/user` | `[AuthMiddleware]` | Alias for profile endpoint |
+| `GET` | `/api/v1/cart` | `[AuthMiddleware]` | View customer cart (live prices, quantities, stock warnings, subtotal) |
+| `GET` | `/api/v1/cart/count` | `[AuthMiddleware]` | Fast aggregate badge count of cart items for navbar |
+| `POST`| `/api/v1/cart/items` | `[AuthMiddleware]` | Add toy to cart or increment quantity |
+| `PUT` | `/api/v1/cart/items/{id}`| `[AuthMiddleware]` | Update cart item quantity (with strict IDOR protection) |
+| `DELETE`| `/api/v1/cart/items/{id}`| `[AuthMiddleware]` | Remove single toy from cart (IDOR protected) |
+| `DELETE`| `/api/v1/cart` | `[AuthMiddleware]` | Clear customer's entire cart |
 | `POST`| `/api/v1/admin/auth/login` | Public | Staff backoffice login (Managers & Super Admins) |
 | `POST`| `/api/v1/admin/auth/logout` | `[AuthMiddleware]` | Staff backoffice logout (sets `is_online = 0`) |
 | `POST`| `/api/v1/admin/auth/ping` | `[AuthMiddleware]` | Staff presence heartbeat (keeps session alive & updates `updated_at = NOW()`) |
@@ -294,11 +300,13 @@ basic_e-commerce/
 ---
 
 ### [CURRENT FOCUS] Branch: `feat/shopping-cart-and-checkout`
-- **Milestone 1 [IN PROGRESS]:** Shopping Cart Model & Architecture:
+- **Milestone 1 [DONE]:** Shopping Cart Model & Architecture:
   - `database/schemas/cart_items.sql`: Schema with user/product foreign keys and unique constraint.
   - `src/Models/Cart.php`: Model with live price calculations, stock checks, upsert item additions, IDOR protection.
-  - Next: `src/Controllers/CartController.php` and public route registration in `public/index.php`.
-- **Milestone 2 [UPCOMING]:** Atomic transaction checkout with pessimistic row locks (`SELECT ... FOR UPDATE`).
+  - `src/Controllers/CartController.php`: Complete IDOR-guarded REST endpoints.
+  - `public/index.php`: Registered 6 cart routes under `AuthMiddleware`.
+  - `postman/ToyVerse_API.postman_collection.json`: Complete 42-request suite including all 6 cart endpoints.
+- **Milestone 2 [NEXT]:** Atomic transaction checkout with pessimistic row locks (`SELECT ... FOR UPDATE`).
 - **Milestone 3 [UPCOMING]:** Order confirmation receipts, invoices, and cart cleanup.
 
 ---
