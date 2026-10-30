@@ -264,6 +264,24 @@
                         "method": "POST",
                         "url": "{{base_url}}/api/v1/admin/auth/logout"
                     }
+                },
+                {
+                    "name": "Staff Presence Ping",
+                    "request": {
+                        "description": "Heartbeat ping to keep session alive and refresh is_online timestamp.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{staff_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "url": "{{base_url}}/api/v1/admin/auth/ping"
+                    }
                 }
             ]
         },
@@ -556,6 +574,61 @@
                         "method": "PATCH",
                         "url": "{{base_url}}/api/v1/admin/users/2/status"
                     }
+                },
+                {
+                    "name": "Staff Create Category",
+                    "request": {
+                        "description": "Staff creates a new main category with automated slugification.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{staff_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"STEM & Robotics\",\n  \"description\": \"Science and engineering toys\",\n  \"image_url\": \"/uploads/categories/stem.webp\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/api/v1/admin/categories"
+                    }
+                },
+                {
+                    "name": "Staff Upload Image",
+                    "request": {
+                        "description": "Multipart image upload to /public/uploads/products or /categories.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{staff_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        },
+                        "url": "{{base_url}}/api/v1/admin/upload?folder=products"
+                    }
                 }
             ]
         },
@@ -678,6 +751,156 @@
                         },
                         "method": "DELETE",
                         "url": "{{base_url}}/api/v1/admin/subcategories/13"
+                    }
+                },
+                {
+                    "name": "Toggle Manager Access Status",
+                    "request": {
+                        "description": "Super Admin 1-click dynamic Grant / Revoke access toggle.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "url": "{{base_url}}/api/v1/admin/managers/3/status"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "06 - Customer Shopping Cart",
+            "description": "Customer shopping cart endpoints with live prices, subtotal calculations, stock validation, and IDOR protection. Guarded by AuthMiddleware.",
+            "item": [
+                {
+                    "name": "View Shopping Cart",
+                    "request": {
+                        "description": "Retrieve complete customer cart basket with calculated line totals, unit prices, and primary toy thumbnails.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{customer_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/cart"
+                    }
+                },
+                {
+                    "name": "Get Cart Badge Count",
+                    "request": {
+                        "description": "Fast lightweight aggregate query returning the total number of items in the cart for navbar badge counters.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{customer_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "url": "{{base_url}}/api/v1/cart/count"
+                    }
+                },
+                {
+                    "name": "Add Item to Cart",
+                    "request": {
+                        "description": "Add a product to cart or increment its quantity. Enforces stock limits and active product checks.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{customer_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/api/v1/cart/items"
+                    }
+                },
+                {
+                    "name": "Update Cart Item Quantity",
+                    "request": {
+                        "description": "Update quantity for a cart item. Enforces IDOR security. Setting quantity to 0 removes the item.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{customer_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"quantity\": 3\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{base_url}}/api/v1/cart/items/1"
+                    }
+                },
+                {
+                    "name": "Remove Single Item from Cart",
+                    "request": {
+                        "description": "Remove a specific item from the shopping cart with IDOR protection.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{customer_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "url": "{{base_url}}/api/v1/cart/items/1"
+                    }
+                },
+                {
+                    "name": "Clear Entire Shopping Cart",
+                    "request": {
+                        "description": "Empty the customer's entire shopping cart basket.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{customer_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "url": "{{base_url}}/api/v1/cart"
                     }
                 }
             ]
