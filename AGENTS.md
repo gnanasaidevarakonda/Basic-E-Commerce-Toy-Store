@@ -46,8 +46,8 @@
   - **DEV (Windows Host / `/mnt/c/`):**
     - `toystore_dev_web` (Nginx Alpine): Port `8085:80` (FastCGI configured with `fastcgi_param HTTP_AUTHORIZATION $http_authorization;`, `absolute_redirect off;` to preserve host port 8085 on directory redirects).
     - `toystore_dev_app` (PHP 8.2-FPM): Custom Dockerfile from `docker/php/Dockerfile` (`pdo`, `pdo_mysql`).
-    - `toystore_dev_db` (MySQL 8.0): Host port `3307:3306`.
-    - Profile: `COMPOSE_PROJECT_NAME=toystore_dev`, `HOST_WEB_PORT=8085`, `HOST_DB_PORT=3307`.
+    - `toystore_dev_db` (MySQL 8.0): Host port `3309:3306`.
+    - Profile: `COMPOSE_PROJECT_NAME=toystore_dev`, `HOST_WEB_PORT=8085`, `HOST_DB_PORT=3309`.
   - **STAGING (Ubuntu WSL Native ext4 `~/staging/`):**
     - `toystore_staging_web` (Nginx Alpine): Port `8086:80`.
     - `toystore_staging_app` (PHP 8.2-FPM).

@@ -54,7 +54,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:-toystore_password}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
     ports:
-      - "${HOST_DB_PORT:-3307}:3306"
+      - "${HOST_DB_PORT:-3309}:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
